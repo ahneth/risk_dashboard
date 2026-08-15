@@ -1,20 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="css/dashboard.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script type="module" src="js/app.js"></script>
-</head>
-<body>
-  <div id="risk-banner" class="status-banner">Loading Risk Matrix...</div>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macro Market Risk Matrix</title>
   
-  <div class="card-grid">
-    <div class="card" id="vix-card">
-      <h3>CBOE VIX</h3>
-      <div class="metric-value" id="vix-val">--</div>
-      <div class="chart-box"><canvas id="vixChart"></canvas></div>
-    </div>
-    <!-- Additional factor cards -->
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Custom status banner colors for risk regimes */
+    .status-banner {
+      @apply py-3 px-6 text-center font-bold text-sm tracking-wider uppercase rounded-xl transition-all duration-300 shadow-md;
+    }
+    .regime-low { @apply bg-emerald-950/80 text-emerald-400 border border-emerald-800/50; }
+    .regime-moderate { @apply bg-amber-950/80 text-amber-400 border border-amber-800/50; }
+    .regime-high { @apply bg-orange-950/80 text-orange-400 border border-orange-800/50; }
+    .regime-extreme { @apply bg-rose-950/80 text-rose-400 border border-rose-800/50 animate-pulse; }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between antialiased">
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+    
+    <!-- Top Header -->
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+          <span>📊</span> Macro Market Risk Matrix
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">Real-time systemic risk monitoring via St. Louis Fed (FRED)</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="btn-change-key" class="text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-2 rounded-lg border border-slate-800 transition flex items-center gap-1.5 shadow-sm">
+          <span>🔑</span> Change API Key
+        </button>
+      </div>
+    </header>
+
+    <!-- Global Risk Status Banner -->
+    <section>
+      <div id="risk-banner" class="status-banner bg-slate-900 text-slate-400 border border-slate-800">
+        Loading Risk Matrix Data...
+      </div>
+    </section>
+
+    <!-- Indicator Cards Grid (3x2 on desktop) -->
+    <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- 1. CBOE VIX Volatility -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-200">CBOE VIX Index</h2>
+              <p class="text-[11px] text-slate-500">Market Volatility Expectations</p>
+            </div>
+            <span id="vix-val" class="text-xl font-black font-mono text-indigo-400">--</span>
+          </div>
+        </div>
+        <div class="h-44 w-full mt-4">
+          <canvas id="vixChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 2. 10Y-2Y Yield Curve Spread -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-200">Yield Curve Spread</h2>
+              <p class="text-[11px] text-slate-500">10-Year vs 2-Year Treasury (%)</p>
+            </div>
+            <span id="yield_curve-val" class="text-xl font-black font-mono text-indigo-400">--</span>
+          </div>
+        </div>
+        <div class="h-44 w-full mt-4">
+          <canvas id="yield_curveChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 3. High Yield Credit Spread -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-200">HY Credit Spread</h2>
+              <p class="text-[11px] text-slate-500">US High Yield Option-Adjusted Spread</p>
+            </div>
+            <span id="credit_spread-val" class="text-xl font-black font-mono text-indigo-400">--</span>
+          </div>
+        </div>
+        <div class="h-44 w-full mt-4">
+          <canvas id="credit_spreadChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 4. Sahm Rule Recession Indicator -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-200">Sahm Rule Indicator</h2>
+              <p class="text-[11px] text-slate-500">Real-time Recession Early Warning</p>
+            </div>
+            <span id="sahm_rule-val" class="text-xl font-black font-mono text-indigo-400">--</span>
+          </div>
+        </div>
+        <div class="h-44 w-full mt-4">
+          <canvas id="sahm_ruleChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 5. National Financial Conditions Index (NFCI) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-200">Chicago Fed NFCI</h2>
+              <p class="text-[11px] text-slate-500">Financial System Tightness</p>
+            </div>
+            <span id="nfci-val" class="text-xl font-black font-mono text-indigo-400">--</span>
+          </div>
+        </div>
+        <div class="h-44 w-full mt-4">
+          <canvas id="nfciChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 6. Market Breadth -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h2 class="text-sm font-bold text-slate-200">Market Breadth</h2>
+              <p class="text-[11px] text-slate-500">S&P Sector Strength / Breadth</p>
+            </div>
+            <span id="breadth-val" class="text-xl font-black font-mono text-indigo-400">--</span>
+          </div>
+        </div>
+        <div class="h-44 w-full mt-4">
+          <canvas id="breadthChart"></canvas>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-600 border-t border-slate-900 pt-6">
+      Macro Risk Dashboard &bull; Powered by St. Louis Fed FRED API &bull; Client-side Storage Enabled
+    </footer>
   </div>
+
+  <!-- API Key Modal Overlay -->
+  <div id="key-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="space-y-1">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>🔑</span> FRED API Key Required
+        </h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Enter your 32-character API key to pull live market data. Your key is stored strictly in your browser's <code class="text-slate-300">localStorage</code> and is never committed to GitHub.
+        </p>
+      </div>
+      
+      <div class="space-y-2">
+        <input 
+          type="password" 
+          id="modal-key-input" 
+          placeholder="Paste FRED API key here..." 
+          class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 font-mono tracking-wider"
+        />
+        <p id="modal-error" class="text-xs text-rose-400 hidden">Please enter a valid API key.</p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button id="btn-use-fallback" class="px-3.5 py-2 text-xs text-slate-400 hover:text-slate-200 transition">
+          Use Offline Data
+        </button>
+        <button id="btn-save-key" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition shadow-md shadow-indigo-950/50">
+          Save & Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orchestrator Script Module -->
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
