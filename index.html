@@ -42,7 +42,7 @@
       </div>
     </section>
 
-    <!-- FIRST CHART: Overall Weighted Risk Score -->
+    <!-- CHART 1: Overall Weighted Risk Score -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center border-b border-slate-800/80 pb-4">
         <div>
@@ -55,8 +55,26 @@
           -- / 9
         </div>
       </div>
-      <div class="h-64 w-full">
+      <div class="h-60 w-full">
         <canvas id="overallChart"></canvas>
+      </div>
+    </section>
+
+    <!-- CHART 2: S&P 500 Benchmark Comparison -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800/80 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📈</span> S&P 500 Index (24-Month Benchmark)
+          </h2>
+          <p class="text-xs text-slate-400">Compare market price action directly against the composite risk score trajectory above</p>
+        </div>
+        <div id="sp500-badge" class="text-sm font-bold px-3 py-1 rounded-full border bg-sky-950/80 text-sky-400 border-sky-800/60 font-mono">
+          --
+        </div>
+      </div>
+      <div class="h-60 w-full">
+        <canvas id="sp500Chart"></canvas>
       </div>
     </section>
 
