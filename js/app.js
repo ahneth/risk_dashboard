@@ -4,54 +4,96 @@ import { fetchMarkerHistory } from './fred-api.js';
 import { evaluateRiskRegime } from './risk-engine.js';
 import { renderTrendChart } from './charts.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const seriesEntries = Object.entries(FRED_CONFIG.SERIES);
-  const dataset = {};
+document.addEventListener('DOMContentLoaded', () => {
+  setupKeyModalEvents();
 
-  // Fetch all factors in parallel without blocking each other
-  const results = await Promise.allSettled(
-    seriesEntries.map(async ([key, seriesId]) => {
-      const history = await fetchMarkerHistory(seriesId);
-      return { key, history };
-    })
-  );
+  // Check if API key exists in localStorage
+  if (!FRED_CONFIG.API_KEY) {
+    showKeyModal();
+  } else {
+    initializeDashboard();
+  }
+});
 
-  // Process results for each card
-  results.forEach((result) => {
-    if (result.status === 'fulfilled') {
-      const { key, history } = result.value;
-      dataset[key] = history;
+function setupKeyModalEvents() {
+  const modal = document.getElementById('key-modal');
+  const keyInput = document.getElementById('modal-key-input');
+  const saveBtn = document.getElementById('btn-save-key');
+  const fallbackBtn = document.getElementById('btn-use-fallback');
+  const changeKeyBtn = document.getElementById('btn-change-key');
 
-      // Update current metric readout in UI
-      const latestVal = history.length > 0 ? history[history.length - 1].value : '--';
-      const valElem = document.getElementById(`${key.toLowerCase()}-val`);
-      if (valElem) valElem.innerText = latestVal;
-
-      // Render 24-month trendline chart
-      renderTrendChart(`${key.toLowerCase()}Chart`, key, history.slice(-24));
+  saveBtn?.addEventListener('click', () => {
+    const val = keyInput.value.trim();
+    if (val) {
+      localStorage.setItem('FRED_API_KEY', val);
+      hideKeyModal();
+      initializeDashboard();
+    } else {
+      document.getElementById('modal-error')?.classList.remove('hidden');
     }
   });
 
-  // Calculate composite RAG status across all loaded factors
-  const latestValues = extractLatestValues(dataset);
-  const regimeResult = evaluateRiskRegime(latestValues);
+  fallbackBtn?.addEventListener('click', () => {
+    hideKeyModal();
+    initializeDashboard(); // Will gracefully use FALLBACK_DATA
+  });
 
-  // Render overall risk banner & individual status badges
-  updateRiskUI(regimeResult);
-});
-
-function extractLatestValues(dataset) {
-  const latest = {};
-  for (const [key, history] of Object.entries(dataset)) {
-    if (history && history.length > 0) {
-      latest[key] = history[history.length - 1].value;
-    }
-  }
-  return latest;
+  changeKeyBtn?.addEventListener('click', () => {
+    keyInput.value = FRED_CONFIG.API_KEY;
+    showKeyModal();
+  });
 }
 
-function updateRiskUI(regimeResult) {
+function showKeyModal() {
+  document.getElementById('key-modal')?.classList.remove('hidden');
+}
+
+function hideKeyModal() {
+  document.getElementById('key-modal')?.classList.add('hidden');
+}
+
+async function initializeDashboard() {
   const banner = document.getElementById('risk-banner');
+  if (banner) banner.innerText = "Fetching Market Data...";
+
+  const seriesEntries = Object.entries(FRED_CONFIG.SERIES);
+  const dataset = {};
+
+  for (const [key, seriesId] of seriesEntries) {
+    try {
+      const history = await fetchMarkerHistory(seriesId);
+      dataset[key] = Array.isArray(history) && history.length > 0 ? history : [];
+    } catch (e) {
+      console.error(`Error loading ${key}:`, e);
+      dataset[key] = [];
+    }
+  }
+
+  // Render individual indicator cards and charts
+  Object.keys(FRED_CONFIG.SERIES).forEach((key) => {
+    const history = dataset[key] || [];
+    const canvasId = `${key.toLowerCase()}Chart`;
+    const valElem = document.getElementById(`${key.toLowerCase()}-val`);
+
+    if (history.length > 0) {
+      const latestVal = history[history.length - 1].value;
+      if (valElem) valElem.innerText = latestVal;
+      renderTrendChart(canvasId, key, history.slice(-24));
+    } else {
+      if (valElem) valElem.innerText = "N/A";
+    }
+  });
+
+  // Calculate composite regime score
+  const latestValues = {};
+  Object.keys(dataset).forEach(k => {
+    if (dataset[k].length > 0) {
+      latestValues[k] = dataset[k][dataset[k].length - 1].value;
+    }
+  });
+
+  const regimeResult = evaluateRiskRegime(latestValues);
+  
   if (banner) {
     banner.innerText = `MARKET RISK REGIME: ${regimeResult.overallRegime}`;
     banner.className = `status-banner regime-${regimeResult.overallRegime.toLowerCase()}`;
