@@ -57,7 +57,15 @@ async function loadDashboardData() {
     }
 
     const cleanData = cleanSeriesData(obs);
-    renderCardChart(`${id}Chart`, cleanData, isHigh ? '#f43f5e' : '#38bdf8');
+
+    // Calculate historical risk score trendline (0.0 or 1.5) for each data point
+    const thresholdFn = RISK_THRESHOLDS[id];
+    const riskTrend = cleanData.map(pt => ({
+      x: pt.x,
+      y: thresholdFn && thresholdFn(pt.y) ? 1.5 : 0.0
+    }));
+
+    renderCardChart(`${id}Chart`, cleanData, riskTrend, isHigh ? '#f43f5e' : '#38bdf8');
   });
 
   const sp500Latest = getLatestValidPoint(seriesData.sp500 || []);
@@ -66,7 +74,6 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
-  // Format total risk score (max 9.0)
   const formattedScore = (Math.round(totalRiskScore * 10) / 10).toFixed(1);
   updateOverallScore(formattedScore);
 
@@ -106,7 +113,8 @@ function updateCardValue(indicatorId, observations, unit = '') {
 }
 
 function updateIndicatorBadge(indicatorId, isHighRisk, points = 0, isMissing = false) {
-  const badge = document.getElementById(`${indicatorId}-score-badge`);
+  const badge = document.getElementById(`${indicatorId}-score-badge`) ||
+                document.getElementById(`${indicatorId.replace('_', '-')}-score-badge`);
   if (!badge) return;
 
   if (isMissing) {
