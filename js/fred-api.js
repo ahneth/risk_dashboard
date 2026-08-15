@@ -7,9 +7,15 @@ export async function fetchMarkerHistory(key, seriesId) {
       throw new Error('No API key provided.');
     }
 
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, 150));
 
-    const rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json`;
+    // Calculate exact date 24 months ago
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 24);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    // frequency=m normalizes daily/weekly metrics into 24 monthly points
+    const rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}&frequency=m&aggregation_method=eop`;
     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
 
     const response = await fetch(proxyUrl);
@@ -30,7 +36,6 @@ export async function fetchMarkerHistory(key, seriesId) {
     return cleanHistory;
   } catch (err) {
     console.warn(`[FRED API] Using fallback data for key "${key}" (${seriesId}). Reason:`, err.message);
-    // Correct lookup using dictionary key instead of FRED series ID
     return FALLBACK_DATA[key] || [];
   }
 }
@@ -39,7 +44,8 @@ function parseObservations(observations) {
   return observations
     .filter(obs => obs.value && obs.value !== '.')
     .map(obs => ({
-      date: obs.date,
+      // Format as YYYY-MM for clean chart labels
+      date: obs.date.substring(0, 7),
       value: parseFloat(obs.value)
     }));
 }
