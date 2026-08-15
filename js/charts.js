@@ -77,7 +77,7 @@ export function renderCardChart(canvasId, dataPoints, riskPoints, strokeColor = 
   });
 }
 
-export function renderCombinedChart(sp500Data, vixData) {
+export function renderCombinedChart(sp500Data, riskScoreData) {
   const canvas = document.getElementById('combinedChart');
   if (!canvas) return;
 
@@ -101,11 +101,11 @@ export function renderCombinedChart(sp500Data, vixData) {
           pointHoverRadius: 4
         },
         {
-          label: 'VIX Volatility',
-          data: vixData.map(p => p.y),
+          label: 'Consolidated Risk Score',
+          data: riskScoreData.map(p => p.y),
           borderColor: '#f43f5e',
-          borderWidth: 1.5,
-          yAxisID: 'y_vix',
+          borderWidth: 1.8,
+          yAxisID: 'y_risk',
           tension: 0.1,
           pointRadius: 0,
           pointHoverRadius: 4
@@ -131,12 +131,19 @@ export function renderCombinedChart(sp500Data, vixData) {
           grid: { color: 'rgba(51, 65, 85, 0.4)' },
           ticks: { color: '#38bdf8', font: { size: 10 } }
         },
-        y_vix: {
+        y_risk: {
           type: 'linear',
           display: true,
           position: 'right',
+          min: 0,
+          max: 9,
           grid: { drawOnChartArea: false },
-          ticks: { color: '#f43f5e', font: { size: 10 } }
+          ticks: {
+            color: '#f43f5e',
+            font: { size: 10 },
+            stepSize: 3,
+            callback: (val) => `${val}/9`
+          }
         }
       }
     }
