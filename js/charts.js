@@ -32,13 +32,13 @@ export function renderCardChart(canvasId, dataPoints, riskPoints, strokeColor = 
           yAxisID: 'y'
         },
         {
-          label: 'Risk Score (0 or 1.5)',
+          label: 'Risk Score (0-9)',
           data: riskPoints.map(p => p.y),
           borderColor: '#f43f5e',
-          borderWidth: 1,
-          borderDash: [3, 3], // Dashed line for clarity
+          borderWidth: 1.2,
+          borderDash: [3, 3],
           fill: false,
-          stepped: true, // Step line to show clean 0.0 -> 1.5 threshold transitions
+          tension: 0.2,
           pointRadius: 0,
           yAxisID: 'y_score'
         }
@@ -63,13 +63,14 @@ export function renderCardChart(canvasId, dataPoints, riskPoints, strokeColor = 
           display: true,
           position: 'right',
           min: 0,
-          max: 2,
+          max: 9,
+          beginAtZero: true,
           grid: { drawOnChartArea: false },
           ticks: {
             color: '#f43f5e',
             font: { size: 8 },
-            stepSize: 1.5,
-            callback: (val) => val === 1.5 ? '1.5pt' : (val === 0 ? '0pt' : '')
+            stepSize: 3,
+            callback: (val) => `${val}pt`
           }
         }
       }
