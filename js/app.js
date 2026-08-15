@@ -101,18 +101,24 @@ function computeRiskScore(key, value) {
       return 1;
 
     case 'NFCI':
-      if (value >= 0.75) return 9;
-      if (value >= 0.50) return 8;
-      if (value >= 0.25) return 6;
-      if (value >= 0.00) return 4;
-      if (value >= -0.25) return 2;
-      return 1;
+      // Adjusted for typical NFCI distribution (-0.70 to +0.75+)
+      if (value >= 0.75) return 9;   // Highly restrictive / crisis
+      if (value >= 0.50) return 8;   // Severe tightening
+      if (value >= 0.20) return 6;   // Moderate tightening
+      if (value >= 0.00) return 4;   // Neutral conditions
+      if (value >= -0.30) return 3;  // Mildly loose
+      if (value >= -0.50) return 2;  // Standard loose conditions
+      return 1;                      // Extremely loose (-0.50+)
 
     case 'BREADTH':
-      if (value < 12000) return 8;
-      if (value < 14000) return 6;
-      if (value < 16000) return 4;
-      return 2;
+      // If tracking Wilshire 5000 Total Market (WILL5000PR / WILL5000IND)
+      // Adjust thresholds to current historical baseline levels
+      if (value < 35000) return 9;   // Major market drawdown
+      if (value < 40000) return 8;   // Significant pullback
+      if (value < 45000) return 6;   // Moderate correction
+      if (value < 50000) return 4;   // Slight weakness
+      if (value < 55000) return 2;   // Normal bull baseline
+      return 1;                      // All-time high expansion
 
     default:
       return 0;
