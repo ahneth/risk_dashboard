@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupKeyModalEvents() {
-  const modal = document.getElementById('key-modal');
   const keyInput = document.getElementById('modal-key-input');
   const saveBtn = document.getElementById('btn-save-key');
   const fallbackBtn = document.getElementById('btn-use-fallback');
@@ -51,7 +50,7 @@ function hideKeyModal() {
 
 async function initializeDashboard() {
   const banner = document.getElementById('risk-banner');
-  if (banner) banner.innerText = "Fetching Market Data...";
+  if (banner) banner.innerText = "Fetching 24 Months Market Data...";
 
   const seriesEntries = Object.entries(FRED_CONFIG.SERIES);
   const dataset = {};
@@ -66,7 +65,7 @@ async function initializeDashboard() {
     }
   }
 
-  // Calculate risk score history for each dataset
+  // Calculate 0-9 risk scores for each monthly data point
   Object.keys(FRED_CONFIG.SERIES).forEach((key) => {
     if (dataset[key]) {
       dataset[key] = dataset[key].map(point => ({
@@ -76,7 +75,7 @@ async function initializeDashboard() {
     }
   });
 
-  // Calculate overall composite regime and history
+  // Calculate composite regime across the 24 months
   const regimeResult = evaluateRiskRegime(dataset);
 
   // Update Global Banner & Header Score Badge
@@ -93,12 +92,12 @@ async function initializeDashboard() {
     overallScoreElem.className = `text-lg font-black px-3 py-1 rounded-full border ${meta.badgeClass}`;
   }
 
-  // 1. Render First Chart: Overall Risk Score Chart
+  // 1. Render Overall Risk Score Chart (Full 24 months)
   if (regimeResult.compositeHistory.length > 0) {
-    renderOverallChart('overallChart', regimeResult.compositeHistory.slice(-24));
+    renderOverallChart('overallChart', regimeResult.compositeHistory);
   }
 
-  // 2. Render Individual Marker Charts & Badges
+  // 2. Render Individual Marker Charts (Full 24 months)
   Object.keys(FRED_CONFIG.SERIES).forEach((key) => {
     const history = dataset[key] || [];
     const canvasId = `${key.toLowerCase()}Chart`;
@@ -118,7 +117,7 @@ async function initializeDashboard() {
         scoreBadge.className = `text-xs font-bold px-2.5 py-1 rounded-md border ${meta.badgeClass}`;
       }
 
-      renderMarkerChart(canvasId, key, history.slice(-24));
+      renderMarkerChart(canvasId, key, history);
     }
   });
 }
