@@ -1,210 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Macro Systemic Risk Dashboard</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
 
-  <!-- Header Navigation -->
-  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <h1 class="text-base font-bold text-slate-100 tracking-tight">Macro Risk Dashboard</h1>
-        <span id="overall-score-badge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-          Risk: -- / 9
-        </span>
-        <span id="sp500-badge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-sky-950 text-sky-300 border border-sky-800">
+  <!-- Tailwind CSS & Chart.js CDNs -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Explicit container heights to prevent Chart.js mobile canvas collapse */
+    .card-chart-container {
+      position: relative;
+      width: 100%;
+      height: 160px;
+    }
+    .header-chart-container {
+      position: relative;
+      width: 100%;
+      height: 280px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans p-4 sm:p-6">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Header Bar -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 border border-slate-800 p-4 rounded-xl">
+      <div>
+        <h1 class="text-xl font-bold text-white flex items-center gap-2">
+          Macro Systemic Risk Dashboard
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">Real-time systemic risk monitoring via FRED API</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span id="sp500-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
           S&P: --
         </span>
+        <span id="overall-score-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+          Risk: -- / 9
+        </span>
+        <button id="btn-change-key" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded border border-slate-700 transition">
+          API Key
+        </button>
       </div>
-      <button id="btn-change-key" class="text-xs font-medium px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
-        FRED API Key
-      </button>
-    </div>
-  </header>
+    </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
     <!-- Status Banner -->
-    <div id="risk-banner" class="status-banner border p-3 rounded-lg text-sm font-medium transition-all bg-slate-900 text-slate-400 border-slate-800">
-      Initializing dashboard...
+    <div id="risk-banner" class="border p-3 rounded-lg text-sm font-medium bg-slate-900 text-slate-400 border-slate-800">
+      Initializing system...
     </div>
 
-    <!-- Dual-Axis Combined Header Chart -->
-    <section class="p-5 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
-      <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-        Systemic Risk Score vs. S&P 500 Index
-      </h2>
-      <div class="h-72 w-full">
+    <!-- Main Header Combined Chart -->
+    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+      <h2 class="text-sm font-semibold text-slate-300 mb-3">Systemic Risk Overview (S&P 500 vs VIX)</h2>
+      <div class="header-chart-container">
         <canvas id="combinedChart"></canvas>
       </div>
-    </section>
+    </div>
 
-    <!-- Individual Indicator Cards Grid -->
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      
-      <!-- VIX Card -->
-      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur flex flex-col justify-between">
+    <!-- Indicator Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <!-- VIX -->
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">CBOE VIX Index</h3>
-              <p id="vix-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
-            </div>
-            <span id="vix-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
-              Score: --/9
-            </span>
+          <div class="flex justify-between items-center mb-1">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">VIX Volatility</h3>
+            <span id="vix-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <p class="text-[11px] text-slate-400 leading-snug">Measures 30-day expected S&P 500 option volatility & market fear.</p>
-          <div class="mt-2 text-[10px] text-rose-300/90 bg-rose-950/40 border border-rose-900/50 rounded px-2 py-1">
-            <span class="font-bold text-rose-400">High Risk Threshold:</span> &ge; 25.0 (Severe market volatility & hedging panic)
-          </div>
+          <div id="vix-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
         </div>
-        <div class="h-32 w-full mt-3">
+        <div class="card-chart-container">
           <canvas id="vixChart"></canvas>
         </div>
       </div>
 
-      <!-- Yield Curve Card -->
-      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur flex flex-col justify-between">
+      <!-- Yield Curve -->
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Yield Curve (10Y-2Y)</h3>
-              <p id="yield_curve-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
-            </div>
-            <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
-              Score: --/9
-            </span>
+          <div class="flex justify-between items-center mb-1">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">10Y-2Y Yield Curve</h3>
+            <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <p class="text-[11px] text-slate-400 leading-snug">Difference between 10-Year and 2-Year US Treasury bond yields.</p>
-          <div class="mt-2 text-[10px] text-rose-300/90 bg-rose-950/40 border border-rose-900/50 rounded px-2 py-1">
-            <span class="font-bold text-rose-400">High Risk Threshold:</span> &lt; -0.20% (Inversion signaling recession risk)
-          </div>
+          <div id="yield_curve-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
         </div>
-        <div class="h-32 w-full mt-3">
+        <div class="card-chart-container">
           <canvas id="yield_curveChart"></canvas>
         </div>
       </div>
 
-      <!-- Credit Spread Card -->
-      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur flex flex-col justify-between">
+      <!-- High Yield Credit Spread -->
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Credit Spread (HY OAS)</h3>
-              <p id="credit_spread-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
-            </div>
-            <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
-              Score: --/9
-            </span>
+          <div class="flex justify-between items-center mb-1">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Credit Spread (HY)</h3>
+            <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <p class="text-[11px] text-slate-400 leading-snug">Yield premium required by investors for high-yield corporate bonds.</p>
-          <div class="mt-2 text-[10px] text-rose-300/90 bg-rose-950/40 border border-rose-900/50 rounded px-2 py-1">
-            <span class="font-bold text-rose-400">High Risk Threshold:</span> &ge; 5.0% (Widening spreads signal default stress)
-          </div>
+          <div id="credit_spread-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
         </div>
-        <div class="h-32 w-full mt-3">
+        <div class="card-chart-container">
           <canvas id="credit_spreadChart"></canvas>
         </div>
       </div>
 
-      <!-- Sahm Rule Card -->
-      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur flex flex-col justify-between">
+      <!-- Sahm Rule -->
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sahm Rule Recession</h3>
-              <p id="sahm_rule-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
-            </div>
-            <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
-              Score: --/9
-            </span>
+          <div class="flex justify-between items-center mb-1">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sahm Recession Rule</h3>
+            <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <p class="text-[11px] text-slate-400 leading-snug">Rise in 3-month unemployment average above its 12-month low.</p>
-          <div class="mt-2 text-[10px] text-rose-300/90 bg-rose-950/40 border border-rose-900/50 rounded px-2 py-1">
-            <span class="font-bold text-rose-400">High Risk Threshold:</span> &ge; 0.50% (Signals early macro recession)
-          </div>
+          <div id="sahm_rule-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
         </div>
-        <div class="h-32 w-full mt-3">
+        <div class="card-chart-container">
           <canvas id="sahm_ruleChart"></canvas>
         </div>
       </div>
 
-      <!-- NFCI Card -->
-      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur flex flex-col justify-between">
+      <!-- NFCI -->
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chicago Fed NFCI</h3>
-              <p id="nfci-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
-            </div>
-            <span id="nfci-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
-              Score: --/9
-            </span>
+          <div class="flex justify-between items-center mb-1">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chi Fed Fin Conditions (NFCI)</h3>
+            <span id="nfci-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <p class="text-[11px] text-slate-400 leading-snug">Tracks risk, liquidity, & leverage across US financial markets (0.0 = avg).</p>
-          <div class="mt-2 text-[10px] text-rose-300/90 bg-rose-950/40 border border-rose-900/50 rounded px-2 py-1">
-            <span class="font-bold text-rose-400">High Risk Threshold:</span> &ge; +0.20 (Tighter financial liquidity)
-          </div>
+          <div id="nfci-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
         </div>
-        <div class="h-32 w-full mt-3">
+        <div class="card-chart-container">
           <canvas id="nfciChart"></canvas>
         </div>
       </div>
 
-      <!-- STLFSI Card -->
-      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur flex flex-col justify-between">
+      <!-- STLFSI -->
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Financial Stress (STLFSI)</h3>
-              <p id="stlfsi-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
-            </div>
-            <span id="stlfsi-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
-              Score: --/9
-            </span>
+          <div class="flex justify-between items-center mb-1">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">St. Louis Fin Stress (STLFSI)</h3>
+            <span id="stlfsi-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <p class="text-[11px] text-slate-400 leading-snug">Aggregates 18 market interest rate, spread, & volatility metrics (0.0 = avg).</p>
-          <div class="mt-2 text-[10px] text-rose-300/90 bg-rose-950/40 border border-rose-900/50 rounded px-2 py-1">
-            <span class="font-bold text-rose-400">High Risk Threshold:</span> &ge; +0.50 (Elevated systemic market stress)
-          </div>
+          <div id="stlfsi-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
         </div>
-        <div class="h-32 w-full mt-3">
+        <div class="card-chart-container">
           <canvas id="stlfsiChart"></canvas>
         </div>
       </div>
 
-    </section>
-  </main>
+    </div>
+  </div>
 
   <!-- API Key Modal -->
-  <div id="key-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl max-w-md w-full space-y-4 shadow-2xl">
-      <h2 class="text-base font-bold text-slate-100">FRED API Key Required</h2>
+  <div id="key-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full space-y-4">
+      <h3 class="text-lg font-bold text-white">FRED API Key Required</h3>
       <p class="text-xs text-slate-400 leading-relaxed">
-        Enter your 32-character FRED API key to query macro economic time series data directly from the Federal Reserve Bank of St. Louis.
+        Enter your St. Louis Fed FRED API key below. The key is stored locally in your browser cache.
       </p>
-      <input
-        id="modal-key-input"
-        type="password"
-        placeholder="e.g. abc123def4567890..."
-        class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded text-sm text-slate-200 focus:outline-none focus:border-rose-500"
-      />
-      <div class="flex justify-end space-x-2 pt-2">
-        <button id="btn-save-key" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-semibold transition">
-          Save Key & Load Dashboard
+      <input id="modal-key-input" type="text" placeholder="e.g. abcdef0123456789abcdef0123456789" class="w-full bg-slate-950 border border-slate-700 rounded p-2.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
+      <div class="flex justify-end gap-2">
+        <button id="btn-save-key" class="bg-sky-600 hover:bg-sky-500 text-white font-medium px-4 py-2 rounded text-sm transition">
+          Save & Load Data
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Entry JavaScript Module -->
-  <script type="module" src="js/app.js"></script>
+  <!-- Standard Vanilla Application Engine (No ES Modules) -->
+  <script src="js/app.js"></script>
 </body>
 </html>
