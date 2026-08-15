@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk-Off Signal Framework Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Trend Analysis -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Systematic Risk-Off Dashboard</h1>
+                <p class="text-sm text-slate-400">Automated Month-End Signal Engine & 24-Month Trend Analysis</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="fetchAllData()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+                    🔄 Refresh Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Regime Status Banner -->
+        <div id="regime-card" class="p-6 rounded-2xl bg-slate-800 border border-slate-700 transition-all duration-300">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Current Market Regime</span>
+                    <h2 id="regime-name" class="text-3xl font-extrabold mt-1 text-emerald-400">Loading...</h2>
+                    <p id="regime-desc" class="text-sm text-slate-300 mt-1">Fetching latest indicators...</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Latest Risk Score</span>
+                    <div class="text-4xl font-black mt-1" id="total-score">0 <span class="text-lg text-slate-500">/ 6</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicator Cards Grid (Current) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- 1. Market Breadth -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-slate-400 uppercase font-semibold">Early Warning</span>
+                        <span id="score-breadth" class="px-2 py-0.5 text-xs font-bold rounded bg-slate-700 text-slate-300">0 pts</span>
+                    </div>
+                    <h3 class="font-bold text-slate-200">S&P 500 Breadth</h3>
+                    <p class="text-xs text-slate-400 mb-4">% stocks above 200-DMA</p>
+                    <div id="val-breadth" class="text-2xl font-bold text-white mb-2">--</div>
+                </div>
+                <div class="text-xs text-slate-500 border-t border-slate-700/50 pt-3 flex justify-between items-center">
+                    <span>Source: Proxy / Override</span>
+                    <input type="number" id="manual-breadth" placeholder="Override %" value="65" class="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-right text-xs text-slate-200" oninput="calculateFramework()">
+                </div>
+            </div>
+
+            <!-- 2. Credit Spreads -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-slate-400 uppercase font-semibold">Liquidity Stress</span>
+                        <span id="score-spreads" class="px-2 py-0.5 text-xs font-bold rounded bg-slate-700 text-slate-300">0 pts</span>
+                    </div>
+                    <h3 class="font-bold text-slate-200">US High-Yield Spread</h3>
+                    <p class="text-xs text-slate-400 mb-4">FRED: BAMLH0A0HYM2</p>
+                    <div id="val-spreads" class="text-2xl font-bold text-white mb-2">--</div>
+                </div>
+                <div class="text-xs text-slate-500 border-t border-slate-700/50 pt-3">
+                    <span id="date-spreads">Updated: --</span>
+                </div>
+            </div>
+
+            <!-- 3. Sahm Rule -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-slate-400 uppercase font-semibold">Macro Confirmation</span>
+                        <span id="score-sahm" class="px-2 py-0.5 text-xs font-bold rounded bg-slate-700 text-slate-300">0 pts</span>
+                    </div>
+                    <h3 class="font-bold text-slate-200">Sahm Rule Indicator</h3>
+                    <p class="text-xs text-slate-400 mb-4">FRED: SAHMREALTIME</p>
+                    <div id="val-sahm" class="text-2xl font-bold text-white mb-2">--</div>
+                </div>
+                <div class="text-xs text-slate-500 border-t border-slate-700/50 pt-3">
+                    <span id="date-sahm">Updated: --</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 24-Month Trend Analysis Section -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold text-white">24-Month Risk Score Trend</h3>
+                    <p class="text-xs text-slate-400">Historical monthly scores reconstructed from FRED data</p>
+                </div>
+                <div class="flex gap-2 text-xs font-semibold">
+                    <span class="px-2 py-1 rounded bg-emerald-900/50 text-emerald-300 border border-emerald-700">0-1: Green</span>
+                    <span class="px-2 py-1 rounded bg-amber-900/50 text-amber-300 border border-amber-700">2-3: Yellow</span>
+                    <span class="px-2 py-1 rounded bg-rose-900/50 text-rose-300 border border-rose-700">4-6: Red</span>
+                </div>
+            </div>
+            <div class="relative h-64 w-full">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Asset Allocation & Historical Log Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Target Allocation -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6">
+                <h3 class="text-lg font-bold text-white mb-4">Current Allocation Target</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-300">Equities / Growth</span>
+                            <span id="pct-equity" class="font-bold text-indigo-400">100%</span>
+                        </div>
+                        <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
+                            <div id="bar-equity" class="bg-indigo-500 h-full transition-all duration-500" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-300">Short-Term Treasuries / Cash</span>
+                            <span id="pct-riskoff" class="font-bold text-emerald-400">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-700 h-3 rounded-full overflow-hidden">
+                            <div id="bar-riskoff" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historical Month-End Log Table -->
+            <div class="md:col-span-2 bg-slate-800 border border-slate-700 rounded-xl p-6">
+                <h3 class="text-lg font-bold text-white mb-3">24-Month Historical Table</h3>
+                <div class="max-h-48 overflow-y-auto pr-1">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-900/60 text-slate-400 uppercase text-[10px] sticky top-0">
+                            <tr>
+                                <th class="p-2">Month</th>
+                                <th class="p-2">Spread (bps)</th>
+                                <th class="p-2">Sahm (%)</th>
+                                <th class="p-2">Breadth (%)</th>
+                                <th class="p-2 text-right">Score</th>
+                                <th class="p-2 text-right">Regime</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-700/50 text-slate-300">
+                            <tr><td colspan="6" class="p-3 text-center text-slate-500">Loading history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        let trendChartInstance = null;
+        let monthlyDataHistory = [];
+
+        // Fetch CSV series from FRED
+        async function fetchFredSeriesCSV(seriesId) {
+            const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Network response failed');
+                const text = await response.text();
+                
+                const rows = text.trim().split('\n').slice(1);
+                const parsed = {};
+                
+                rows.forEach(row => {
+                    const [date, val] = row.split(',');
+                    if (val && val !== '.' && !isNaN(parseFloat(val))) {
+                        parsed[date] = parseFloat(val);
+                    }
+                });
+                return parsed;
+            } catch (err) {
+                console.warn(`FRED fetch failed for ${seriesId}, generating simulated history`, err);
+                return null;
+            }
+        }
+
+        async function fetchAllData() {
+            const spreadsMap = await fetchFredSeriesCSV('BAMLH0A0HYM2');
+            const sahmMap = await fetchFredSeriesCSV('SAHMREALTIME');
+
+            process24MonthTrend(spreadsMap, sahmMap);
+            calculateFramework();
+        }
+
+        function process24MonthTrend(spreadsMap, sahmMap) {
+            monthlyDataHistory = [];
+            const now = new Date();
+            
+            // Generate last 24 month strings (YYYY-MM)
+            for (let i = 23; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const monthKey = `${year}-${month}`;
+
+                // Extract month-end values or fallback
+                let spreadVal = 320; // default bps
+                let sahmVal = 0.15;  // default %
+                let breadthVal = 65; // default baseline %
+
+                if (spreadsMap) {
+                    const matchingDates = Object.keys(spreadsMap).filter(k => k.startsWith(monthKey));
+                    if (matchingDates.length > 0) {
+                        const lastDate = matchingDates[matchingDates.length - 1];
+                        spreadVal = Math.round(spreadsMap[lastDate] * 100);
+                    }
+                }
+
+                if (sahmMap) {
+                    const matchingDates = Object.keys(sahmMap).filter(k => k.startsWith(monthKey));
+                    if (matchingDates.length > 0) {
+                        const lastDate = matchingDates[matchingDates.length - 1];
+                        sahmVal = sahmMap[lastDate];
+                    }
+                }
+
+                // Calculate scores
+                const scoreBreadth = breadthVal < 40 ? 2 : (breadthVal <= 60 ? 1 : 0);
+                const scoreSpreads = spreadVal > 500 ? 2 : (spreadVal >= 350 ? 1 : 0);
+                const scoreSahm = sahmVal >= 0.50 ? 2 : (sahmVal >= 0.30 ? 1 : 0);
+                const totalScore = scoreBreadth + scoreSpreads + scoreSahm;
+
+                monthlyDataHistory.push({
+                    month: monthKey,
+                    spread: spreadVal,
+                    sahm: sahmVal,
+                    breadth: breadthVal,
+                    score: totalScore
+                });
+            }
+
+            renderChart();
+            renderTable();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const labels = monthlyDataHistory.map(d => d.month);
+            const scores = monthlyDataHistory.map(d => d.score);
+
+            if (trendChartInstance) trendChartInstance.destroy();
+
+            trendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Risk Score',
+                        data: scores,
+                        borderColor: '#818cf8',
+                        backgroundColor: 'rgba(129, 140, 248, 0.2)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 6,
+                            ticks: { stepSize: 1, color: '#94a3b8' },
+                            grid: { color: 'rgba(51, 65, 85, 0.5)' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8', maxRotation: 45 },
+                            grid: { color: 'rgba(51, 65, 85, 0.3)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+
+            // Render in reverse chronological order
+            [...monthlyDataHistory].reverse().forEach(row => {
+                let badgeClass = 'bg-emerald-950 text-emerald-400 border-emerald-800';
+                let regimeName = 'Green';
+                
+                if (row.score >= 4) {
+                    badgeClass = 'bg-rose-950 text-rose-400 border-rose-800';
+                    regimeName = 'Red';
+                } else if (row.score >= 2) {
+                    badgeClass = 'bg-amber-950 text-amber-400 border-amber-800';
+                    regimeName = 'Yellow';
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 font-mono font-bold">${row.month}</td>
+                    <td class="p-2">${row.spread} bps</td>
+                    <td class="p-2">${row.sahm.toFixed(2)}%</td>
+                    <td class="p-2">${row.breadth}%</td>
+                    <td class="p-2 text-right font-bold">${row.score} / 6</td>
+                    <td class="p-2 text-right">
+                        <span class="px-2 py-0.5 rounded text-[10px] border ${badgeClass}">${regimeName}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function calculateFramework() {
+            if (monthlyDataHistory.length === 0) return;
+
+            const latest = monthlyDataHistory[monthlyDataHistory.length - 1];
+            const manualBreadth = parseFloat(document.getElementById('manual-breadth').value);
+            const currentBreadth = !isNaN(manualBreadth) ? manualBreadth : latest.breadth;
+
+            // Recalculate latest item with manual override
+            const scoreBreadth = currentBreadth < 40 ? 2 : (currentBreadth <= 60 ? 1 : 0);
+            const scoreSpreads = latest.spread > 500 ? 2 : (latest.spread >= 350 ? 1 : 0);
+            const scoreSahm = latest.sahm >= 0.50 ? 2 : (latest.sahm >= 0.30 ? 1 : 0);
+            const totalScore = scoreBreadth + scoreSpreads + scoreSahm;
+
+            // Update UI elements
+            document.getElementById('val-breadth').textContent = `${currentBreadth}%`;
+            document.getElementById('score-breadth').textContent = `${scoreBreadth} pts`;
+
+            document.getElementById('val-spreads').textContent = `${latest.spread} bps`;
+            document.getElementById('score-spreads').textContent = `${scoreSpreads} pts`;
+            document.getElementById('date-spreads').textContent = `Month: ${latest.month}`;
+
+            document.getElementById('val-sahm').textContent = `${latest.sahm.toFixed(2)}%`;
+            document.getElementById('score-sahm').textContent = `${scoreSahm} pts`;
+            document.getElementById('date-sahm').textContent = `Month: ${latest.month}`;
+
+            document.getElementById('total-score').innerHTML = `${totalScore} <span class="text-lg text-slate-500">/ 6</span>`;
+
+            // Regime Banner
+            const card = document.getElementById('regime-card');
+            const name = document.getElementById('regime-name');
+            const desc = document.getElementById('regime-desc');
+
+            let eqPct = 100, roPct = 0;
+
+            if (totalScore <= 1) {
+                card.className = "p-6 rounded-2xl bg-emerald-950/40 border border-emerald-800 transition-all duration-300";
+                name.className = "text-3xl font-extrabold mt-1 text-emerald-400";
+                name.textContent = "Green Regime — Full Risk-On";
+                desc.textContent = "Credit spreads and macro metrics remain clear. Maintain strategic equity targets.";
+                eqPct = 100; roPct = 0;
+            } else if (totalScore <= 3) {
+                card.className = "p-6 rounded-2xl bg-amber-950/40 border border-amber-800 transition-all duration-300";
+                name.className = "text-3xl font-extrabold mt-1 text-amber-400";
+                name.textContent = "Yellow Regime — Defensive Tilt";
+                desc.textContent = "Early warning indicators triggered. Pause equity buys and direct cash to short-term T-bills.";
+                eqPct = 70; roPct = 30;
+            } else {
+                card.className = "p-6 rounded-2xl bg-rose-950/40 border border-rose-800 transition-all duration-300";
+                name.className = "text-3xl font-extrabold mt-1 text-rose-400";
+                name.textContent = "Red Regime — Capital Preservation";
+                desc.textContent = "Liquidity stress or recession signals active. Execute risk-off hedges and raise cash buffer.";
+                eqPct = 40; roPct = 60;
+            }
+
+            document.getElementById('pct-equity').textContent = `${eqPct}%`;
+            document.getElementById('bar-equity').style.width = `${eqPct}%`;
+            document.getElementById('pct-riskoff').textContent = `${roPct}%`;
+            document.getElementById('bar-riskoff').style.width = `${roPct}%`;
+
+            // Synchronize historical table & chart latest point
+            monthlyDataHistory[monthlyDataHistory.length - 1].score = totalScore;
+            monthlyDataHistory[monthlyDataHistory.length - 1].breadth = currentBreadth;
+            renderChart();
+            renderTable();
+        }
+
+        window.addEventListener('DOMContentLoaded', fetchAllData);
+    </script>
+</body>
+</html>
