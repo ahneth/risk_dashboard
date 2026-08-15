@@ -9,37 +9,27 @@ export const FACTOR_WEIGHTS = {
   BREADTH: 0.10
 };
 
-/**
- * Maps raw metric values to an integer 0 - 9 Risk Score scale.
- * 0-3: Low (Green), 4-6: Amber (Moderate), 7-9: Red (High/Extreme)
- */
 export function calculateFactorRiskScore(key, rawValue) {
   if (rawValue === undefined || rawValue === null || isNaN(rawValue)) return 4;
 
   let score = 0;
   switch (key) {
     case 'VIX':
-      // VIX: <=12 is 0, >=35 is 9
       score = ((rawValue - 12) / (35 - 12)) * 9;
       break;
     case 'YIELD_CURVE':
-      // Spread: >=0.75% is 0 (healthy), <=-0.75% is 9 (inverted)
       score = ((0.75 - rawValue) / (0.75 - (-0.75))) * 9;
       break;
     case 'CREDIT_SPREAD':
-      // HY Spread: <=3.0% is 0, >=7.0% is 9
       score = ((rawValue - 3.0) / (7.0 - 3.0)) * 9;
       break;
     case 'SAHM_RULE':
-      // Sahm: 0.0 is 0, >=0.5 is 9 (recession trigger)
       score = (rawValue / 0.5) * 9;
       break;
     case 'NFCI':
-      // NFCI: <=-0.5 is 0 (loose), >=0.5 is 9 (tight)
       score = ((rawValue - (-0.5)) / (0.5 - (-0.5))) * 9;
       break;
     case 'BREADTH':
-      // Breadth: >=75% is 0, <=35% is 9
       score = ((75 - rawValue) / (75 - 35)) * 9;
       break;
     default:
@@ -49,28 +39,25 @@ export function calculateFactorRiskScore(key, rawValue) {
   return Math.min(9, Math.max(0, Math.round(score)));
 }
 
-/**
- * Returns color metadata and Tailwind classes based on 0-9 risk score.
- */
 export function getRiskColorMeta(score) {
   if (score <= 3) {
     return {
       label: 'LOW',
-      hex: '#10b981', // Green
+      hex: '#10b981',
       badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
       bannerClass: 'bg-emerald-950/80 text-emerald-400 border-emerald-800/50'
     };
   } else if (score <= 6) {
     return {
       label: 'MODERATE',
-      hex: '#f59e0b', // Amber
+      hex: '#f59e0b',
       badgeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
       bannerClass: 'bg-amber-950/80 text-amber-400 border-amber-800/50'
     };
   } else {
     return {
       label: 'HIGH / EXTREME',
-      hex: '#ef4444', // Red
+      hex: '#ef4444',
       badgeClass: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
       bannerClass: 'bg-rose-950/80 text-rose-400 border-rose-800/50'
     };
@@ -78,25 +65,28 @@ export function getRiskColorMeta(score) {
 }
 
 /**
- * Computes historical weighted composite scores (0-9) and overall regime status.
+ * Computes composite monthly scores across all 24 months.
  */
 export function evaluateRiskRegime(dataset) {
   const keys = Object.keys(FACTOR_WEIGHTS);
-  const minLength = Math.min(...keys.map(k => (dataset[k] ? dataset[k].length : 0)));
-
-  if (minLength === 0) {
-    return { compositeScore: 0, overallRegime: 'N/A', compositeHistory: [] };
+  
+  // Align timeline to anchor series (VIX)
+  const anchorSeries = dataset['VIX'] || dataset[keys[0]] || [];
+  if (anchorSeries.length === 0) {
+    return { compositeScore: 0, roundedScore: 0, overallRegime: 'N/A', compositeHistory: [] };
   }
 
   const compositeHistory = [];
 
-  for (let i = 0; i < minLength; i++) {
+  anchorSeries.forEach((anchorPoint, idx) => {
     let weightedSum = 0;
     let totalWeight = 0;
-    const date = dataset[keys[0]][i].date;
 
     keys.forEach(key => {
-      const rawVal = dataset[key][i].value;
+      const series = dataset[key] || [];
+      const point = series[idx] || series[series.length - 1];
+
+      const rawVal = point ? point.value : undefined;
       const weight = FACTOR_WEIGHTS[key];
       const factorScore = calculateFactorRiskScore(key, rawVal);
 
@@ -105,8 +95,8 @@ export function evaluateRiskRegime(dataset) {
     });
 
     const compositeScore = +(weightedSum / totalWeight).toFixed(1);
-    compositeHistory.push({ date, value: compositeScore });
-  }
+    compositeHistory.push({ date: anchorPoint.date, value: compositeScore });
+  });
 
   const latestComposite = compositeHistory[compositeHistory.length - 1]?.value || 0;
   const roundedLatest = Math.round(latestComposite);
