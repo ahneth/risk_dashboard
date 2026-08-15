@@ -1,156 +1,83 @@
-// js/charts.js
-import { getRiskColorMeta } from './risk-engine.js';
+const charts = {};
 
-const chartInstances = {};
-
-/**
- * Renders the primary Overall Composite Risk Score Chart (0 - 9).
- */
-export function renderOverallChart(canvasId, compositeHistory) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-
-  const ctx = canvas.getContext('2d');
-  if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
-
-  const labels = compositeHistory.map(p => p.date);
-  const values = compositeHistory.map(p => p.value);
-  const latestScore = Math.round(values[values.length - 1] || 0);
-  const colorMeta = getRiskColorMeta(latestScore);
-
-  chartInstances[canvasId] = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Overall Risk Score (0-9)',
-        data: values,
-        borderColor: colorMeta.hex,
-        backgroundColor: `${colorMeta.hex}22`,
-        fill: true,
-        borderWidth: 3,
-        tension: 0.3,
-        pointRadius: 2,
-        pointHoverRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `Overall Risk Score: ${ctx.parsed.y} / 9`
-          }
-        }
-      },
-      scales: {
-        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
-        y: {
-          min: 0,
-          max: 9,
-          ticks: { stepSize: 1, color: '#94a3b8' },
-          grid: { color: 'rgba(255, 255, 255, 0.1)' }
-        }
-      }
-    }
-  });
+export function initChartDefaults() {
+  if (typeof Chart !== 'undefined') {
+    Chart.defaults.elements.point.radius = 0;
+    Chart.defaults.elements.point.hoverRadius = 4;
+    Chart.defaults.elements.point.hitRadius = 10;
+  }
 }
 
-/**
- * Renders the 24-Month S&P 500 Benchmark Comparison Chart.
- */
-export function renderBenchmarkChart(canvasId, dataPoints) {
+export function renderCardChart(canvasId, dataPoints, strokeColor = '#38bdf8') {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+  if (charts[canvasId]) {
+    charts[canvasId].destroy();
+  }
 
-  const labels = dataPoints.map(p => p.date);
-  const values = dataPoints.map(p => p.value);
-
-  chartInstances[canvasId] = new Chart(ctx, {
+  charts[canvasId] = new Chart(canvas, {
     type: 'line',
     data: {
-      labels,
+      labels: dataPoints.map(p => p.x),
       datasets: [{
-        label: 'S&P 500 Index',
-        data: values,
-        borderColor: '#38bdf8', // Sky blue
-        backgroundColor: 'rgba(56, 189, 248, 0.1)',
-        fill: true,
-        borderWidth: 2.5,
+        data: dataPoints.map(p => p.y),
+        borderColor: strokeColor,
+        borderWidth: 1.5,
+        fill: false,
         tension: 0.2,
-        pointRadius: 2,
-        pointHoverRadius: 6
+        pointRadius: 0,
+        pointHoverRadius: 4
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `S&P 500: ${ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-          }
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+        x: { display: false },
         y: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: {
-            color: '#38bdf8',
-            callback: (val) => val.toLocaleString('en-US')
-          }
+          display: true,
+          grid: { color: 'rgba(51, 65, 85, 0.3)' },
+          ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 4 }
         }
       }
     }
   });
 }
 
-/**
- * Renders individual factor charts with dual Y-axes (Raw Metric + 0-9 Risk Score).
- */
-export function renderMarkerChart(canvasId, title, dataPoints) {
-  const canvas = document.getElementById(canvasId);
+export function renderCombinedChart(sp500Data, vixData) {
+  const canvas = document.getElementById('combinedChart');
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+  if (charts['combinedChart']) {
+    charts['combinedChart'].destroy();
+  }
 
-  const labels = dataPoints.map(p => p.date);
-  const rawValues = dataPoints.map(p => p.value);
-  const riskScores = dataPoints.map(p => p.riskScore);
-  const latestRiskScore = riskScores[riskScores.length - 1] || 0;
-  const colorMeta = getRiskColorMeta(latestRiskScore);
-
-  chartInstances[canvasId] = new Chart(ctx, {
+  charts['combinedChart'] = new Chart(canvas, {
     type: 'line',
     data: {
-      labels,
+      labels: sp500Data.map(p => p.x),
       datasets: [
         {
-          label: 'Raw Value',
-          data: rawValues,
-          borderColor: '#6366f1',
+          label: 'S&P 500 Index',
+          data: sp500Data.map(p => p.y),
+          borderColor: '#38bdf8',
           borderWidth: 2,
-          tension: 0.2,
+          yAxisID: 'y_sp500',
+          tension: 0.1,
           pointRadius: 0,
-          yAxisID: 'y'
+          pointHoverRadius: 4
         },
         {
-          label: 'Risk Score (0-9)',
-          data: riskScores,
-          borderColor: colorMeta.hex,
-          borderDash: [4, 4],
-          borderWidth: 2,
-          stepped: true,
-          pointRadius: 2,
-          yAxisID: 'y1'
+          label: 'VIX Volatility',
+          data: vixData.map(p => p.y),
+          borderColor: '#f43f5e',
+          borderWidth: 1.5,
+          yAxisID: 'y_vix',
+          tension: 0.1,
+          pointRadius: 0,
+          pointHoverRadius: 4
         }
       ]
     },
@@ -159,29 +86,26 @@ export function renderMarkerChart(canvasId, title, dataPoints) {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12 }
-        }
+        legend: { display: true, labels: { color: '#94a3b8', font: { size: 11 } } }
       },
       scales: {
-        x: { display: false },
-        y: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 8 }
+        },
+        y_sp500: {
           type: 'linear',
           display: true,
           position: 'left',
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: '#818cf8', font: { size: 9 } }
+          grid: { color: 'rgba(51, 65, 85, 0.4)' },
+          ticks: { color: '#38bdf8', font: { size: 10 } }
         },
-        y1: {
+        y_vix: {
           type: 'linear',
           display: true,
           position: 'right',
-          min: 0,
-          max: 9,
-          ticks: { stepSize: 3, color: colorMeta.hex, font: { size: 9 } },
-          grid: { drawOnChartArea: false }
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#f43f5e', font: { size: 10 } }
         }
       }
     }
