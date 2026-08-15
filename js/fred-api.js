@@ -3,53 +3,38 @@ import { FRED_CONFIG } from './config.js';
 
 export async function fetchMarkerHistory(key, seriesId) {
   if (!FRED_CONFIG.API_KEY) {
-    throw new Error(`[FRED API] API key missing for "${key}"`);
+    throw new Error('Missing FRED API key');
   }
 
-  const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - 24);
-  const startDateStr = startDate.toISOString().split('T')[0];
+  // Target FRED API endpoint
+  const targetUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&sort_order=asc`;
 
-  // Primary end-of-period query
-  let rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}&frequency=m&aggregation_method=eop`;
-  let proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
+  // Route through a CORS proxy to bypass browser cross-origin blocking
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
-  let response = await fetch(proxyUrl);
+  try {
+    const response = await fetch(proxyUrl);
 
-  // Fallback to unaggregated raw series if end-of-period is rejected
-  if (!response.ok) {
-    rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}`;
-    proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
-    response = await fetch(proxyUrl);
-  }
-
-  if (!response.ok) {
-    throw new Error(`[FRED API] HTTP ${response.status} fetching "${key}" (${seriesId})`);
-  }
-
-  const data = await response.json();
-  if (!data || !Array.isArray(data.observations)) {
-    throw new Error(`[FRED API] Invalid observation structure for "${key}"`);
-  }
-
-  const cleanHistory = parseObservations(data.observations);
-
-  if (cleanHistory.length === 0) {
-    throw new Error(`[FRED API] Zero valid numeric data points for "${key}"`);
-  }
-
-  return cleanHistory;
-}
-
-function parseObservations(observations) {
-  const monthlyMap = new Map();
-
-  for (const obs of observations) {
-    if (obs.value && obs.value !== '.') {
-      const monthKey = obs.date.substring(0, 7);
-      monthlyMap.set(monthKey, parseFloat(obs.value));
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-  }
 
-  return Array.from(monthlyMap.entries()).map(([date, value]) => ({ date, value }));
+    const data = await response.json();
+
+    if (!data.observations) {
+      throw new Error(`Invalid payload structure returned for series: ${seriesId}`);
+    }
+
+    // Filter out missing/dot values ("." indicates unrecorded FRED data points)
+    return data.observations
+      .map(obs => ({
+        date: obs.date,
+        value: parseFloat(obs.value)
+      }))
+      .filter(obs => !isNaN(obs.value));
+
+  } catch (err) {
+    console.error(`[FRED API Fetch Failed] Series ${seriesId}:`, err);
+    throw err;
+  }
 }
