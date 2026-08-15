@@ -18,7 +18,8 @@
                 <h1 class="text-2xl font-bold text-white">Systematic Risk-Off Dashboard</h1>
                 <p class="text-sm text-slate-400">Automated Month-End Signal Engine & 24-Month Trend Analysis</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <input type="text" id="fred-api-key" placeholder="Paste FRED API Key" class="bg-slate-800 border border-slate-700 text-xs px-3 py-2 rounded text-slate-200 w-52 focus:outline-none focus:border-indigo-500">
                 <span id="fetch-status" class="text-xs text-slate-400 hidden">Fetching data...</span>
                 <button id="btn-refresh" onclick="fetchAllData()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 rounded-lg text-sm font-semibold transition flex items-center gap-2">
                     <span id="btn-spinner" class="hidden animate-spin">⏳</span>
@@ -172,7 +173,7 @@
         let trendChartInstance = null;
         let monthlyDataHistory = [];
 
-        // Realistic historical baseline estimates (used if CORS/offline blocks live FRED fetching)
+        // Offline dataset fallback
         const fallbackHistory = [
             { month: '2024-09', spread: 318, sahm: 0.43, breadth: 72 },
             { month: '2024-10', spread: 310, sahm: 0.40, breadth: 68 },
@@ -200,48 +201,63 @@
             { month: '2026-08', spread: 318, sahm: 0.17, breadth: 65 }
         ];
 
-        // CORS-wrapped fetcher
-async function fetchFredSeriesCSV(seriesId) {
-    const rawUrl = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
-    
-    // Multiple backup proxy endpoints
-    const proxyUrls = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`,
-        `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`,
-        `https://thingproxy.freeboard.io/fetch/${rawUrl}`
-    ];
+        // Fetch wrapper prioritizing FRED API key
+        async function fetchFredSeries(seriesId) {
+            const apiKey = document.getElementById('fred-api-key').value.trim();
 
-    for (const proxyUrl of proxyUrls) {
-        try {
-            const response = await fetch(proxyUrl);
-            if (!response.ok) continue;
-            
-            const text = await response.text();
-            // Validate that we received actual CSV content and not an error HTML page
-            if (!text || text.startsWith('<!DOCTYPE') || text.startsWith('<html')) continue;
+            // METHOD 1: Official FRED API (if key is present)
+            if (apiKey) {
+                try {
+                    const fredApiUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(fredApiUrl)}`;
+                    
+                    const response = await fetch(proxyUrl);
+                    const wrapper = await response.json();
+                    const data = JSON.parse(wrapper.contents);
 
-            const rows = text.trim().split('\n').slice(1);
-            const parsed = {};
-            
-            rows.forEach(row => {
-                const [date, val] = row.split(',');
-                if (val && val !== '.' && !isNaN(parseFloat(val))) {
-                    parsed[date] = parseFloat(val);
+                    if (data.observations) {
+                        const parsed = {};
+                        data.observations.forEach(obs => {
+                            if (obs.value && obs.value !== '.') {
+                                parsed[obs.date] = parseFloat(obs.value);
+                            }
+                        });
+                        return parsed;
+                    }
+                } catch (err) {
+                    console.warn(`FRED API Key fetch failed for ${seriesId}, trying public fallback...`, err);
                 }
-            });
-
-            if (Object.keys(parsed).length > 0) {
-                return parsed; // Successfully fetched and parsed live data
             }
-        } catch (err) {
-            console.warn(`Proxy ${proxyUrl} failed, trying next...`);
+
+            // METHOD 2: Public proxy fallback
+            try {
+                const rawUrl = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rawUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                const wrapper = await response.json();
+                const text = wrapper.contents;
+
+                if (!text || text.includes('<!DOCTYPE') || text.includes('<html')) {
+                    throw new Error('Cloudflare challenge returned instead of CSV');
+                }
+
+                const rows = text.trim().split('\n').slice(1);
+                const parsed = {};
+                rows.forEach(row => {
+                    const [date, val] = row.split(',');
+                    if (val && val !== '.' && !isNaN(parseFloat(val))) {
+                        parsed[date] = parseFloat(val);
+                    }
+                });
+
+                if (Object.keys(parsed).length > 0) return parsed;
+            } catch (err) {
+                console.warn(`Public proxy blocked for ${seriesId}:`, err);
+            }
+
+            return null;
         }
-    }
-
-    console.warn(`All proxies failed for ${seriesId}. Using offline fallback.`);
-    return null;
-}
-
 
         async function fetchAllData() {
             const btn = document.getElementById('btn-refresh');
@@ -249,7 +265,6 @@ async function fetchFredSeriesCSV(seriesId) {
             const btnText = document.getElementById('btn-text');
             const statusText = document.getElementById('fetch-status');
 
-            // UI Feedback: Loading state
             btn.disabled = true;
             spinner.classList.remove('hidden');
             btnText.textContent = 'Updating...';
@@ -257,14 +272,19 @@ async function fetchFredSeriesCSV(seriesId) {
             statusText.textContent = 'Fetching FRED economic series...';
 
             try {
-                const spreadsMap = await fetchFredSeriesCSV('BAMLH0A0HYM2');
-                const sahmMap = await fetchFredSeriesCSV('SAHMREALTIME');
+                const spreadsMap = await fetchFredSeries('BAMLH0A0HYM2');
+                const sahmMap = await fetchFredSeries('SAHMREALTIME');
 
                 process24MonthTrend(spreadsMap, sahmMap);
                 calculateFramework();
 
-                statusText.textContent = spreadsMap ? '✓ Live data updated' : '⚠ Using offline model data';
-                statusText.className = spreadsMap ? 'text-xs text-emerald-400' : 'text-xs text-amber-400';
+                if (spreadsMap && sahmMap) {
+                    statusText.textContent = '✓ Live FRED data updated';
+                    statusText.className = 'text-xs text-emerald-400';
+                } else {
+                    statusText.textContent = '⚠ Cloudflare blocked public fetch — Enter FRED API key above';
+                    statusText.className = 'text-xs text-amber-400';
+                }
             } catch (err) {
                 console.error('Error fetching data:', err);
                 statusText.textContent = '⚠ Update error';
@@ -286,13 +306,11 @@ async function fetchFredSeriesCSV(seriesId) {
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 const monthKey = `${year}-${month}`;
 
-                // Fallback default from dataset for this index
                 const fallbackItem = fallbackHistory[23 - i] || fallbackHistory[fallbackHistory.length - 1];
                 let spreadVal = fallbackItem.spread;
                 let sahmVal = fallbackItem.sahm;
                 let breadthVal = fallbackItem.breadth;
 
-                // Override with live FRED data if present
                 if (spreadsMap) {
                     const matchingDates = Object.keys(spreadsMap).filter(k => k.startsWith(monthKey));
                     if (matchingDates.length > 0) {
@@ -309,7 +327,6 @@ async function fetchFredSeriesCSV(seriesId) {
                     }
                 }
 
-                // Score components
                 const scoreBreadth = breadthVal < 40 ? 2 : (breadthVal <= 60 ? 1 : 0);
                 const scoreSpreads = spreadVal > 500 ? 2 : (spreadVal >= 350 ? 1 : 0);
                 const scoreSahm = sahmVal >= 0.50 ? 2 : (sahmVal >= 0.30 ? 1 : 0);
@@ -467,7 +484,24 @@ async function fetchFredSeriesCSV(seriesId) {
             renderTable();
         }
 
-        window.addEventListener('DOMContentLoaded', fetchAllData);
+        // Initialize Option 1: Load/Save API Key automatically via localStorage
+        window.addEventListener('DOMContentLoaded', () => {
+            const keyInput = document.getElementById('fred-api-key');
+
+            // Load saved key from localStorage
+            const savedKey = localStorage.getItem('fred_api_key');
+            if (savedKey) {
+                keyInput.value = savedKey;
+            }
+
+            // Auto-save key to localStorage on edit
+            keyInput.addEventListener('input', (e) => {
+                localStorage.setItem('fred_api_key', e.target.value.trim());
+            });
+
+            // Initial data load
+            fetchAllData();
+        });
     </script>
 </body>
-</html
+</html>
