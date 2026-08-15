@@ -1,5 +1,5 @@
 export const FRED_CONFIG = {
-  API_KEY: 'YOUR_FRED_API_KEY',
+  API_KEY: '4448e9a35873ca230233011b87c25a2c',
   BASE_URL: 'https://api.stlouisfed.org/fred/series/observations',
   SERIES: {
     VIX: 'VIXCLS',
