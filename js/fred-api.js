@@ -1,3 +1,6 @@
+/**
+ * Locates newest valid non-null numeric observation.
+ */
 export function getLatestValidPoint(observations) {
   if (!Array.isArray(observations)) return null;
 
@@ -13,6 +16,9 @@ export function getLatestValidPoint(observations) {
   return null;
 }
 
+/**
+ * Filters out holiday/missing values for Chart.js
+ */
 export function cleanSeriesData(observations) {
   if (!Array.isArray(observations)) return [];
 
@@ -25,8 +31,16 @@ export function cleanSeriesData(observations) {
     .filter(point => !isNaN(point.y));
 }
 
+/**
+ * Queries FRED API via CORS proxy with a strict 24-month start date parameter
+ */
 export async function fetchFredSeries(seriesId, apiKey) {
-  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
+  // Dynamically calculate start date 24 months ago from today (YYYY-MM-DD)
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - 24);
+  const startDateStr = startDate.toISOString().split('T')[0];
+
+  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDateStr}`;
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fredUrl)}`;
 
   const response = await fetch(proxyUrl);
