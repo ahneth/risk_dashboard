@@ -49,10 +49,11 @@ async function loadDashboardData() {
 
     if (latest) {
       isHigh = RISK_THRESHOLDS[id] ? RISK_THRESHOLDS[id](latest.value) : false;
-      if (isHigh) totalRiskScore += 1.5;
-      updateIndicatorBadge(id, isHigh);
+      const points = isHigh ? 1.5 : 0;
+      totalRiskScore += points;
+      updateIndicatorBadge(id, isHigh, points);
     } else {
-      updateIndicatorBadge(id, false, true);
+      updateIndicatorBadge(id, false, 0, true);
     }
 
     const cleanData = cleanSeriesData(obs);
@@ -65,8 +66,9 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
-  const scoreDisplay = Math.min(Math.round(totalRiskScore), 9);
-  updateOverallScore(scoreDisplay);
+  // Format total risk score (max 9.0)
+  const formattedScore = (Math.round(totalRiskScore * 10) / 10).toFixed(1);
+  updateOverallScore(formattedScore);
 
   renderCombinedChart(
     cleanSeriesData(seriesData.sp500 || []),
@@ -103,22 +105,22 @@ function updateCardValue(indicatorId, observations, unit = '') {
   return latest;
 }
 
-function updateIndicatorBadge(indicatorId, isHighRisk, isMissing = false) {
+function updateIndicatorBadge(indicatorId, isHighRisk, points = 0, isMissing = false) {
   const badge = document.getElementById(`${indicatorId}-score-badge`);
   if (!badge) return;
 
   if (isMissing) {
     badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700';
-    badge.textContent = 'Status: N/A';
+    badge.textContent = 'SCORE: N/A';
     return;
   }
 
   if (isHighRisk) {
     badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-rose-950 text-rose-300 border-rose-800 animate-pulse';
-    badge.textContent = 'HIGH RISK';
+    badge.textContent = `+${points.toFixed(1)} PTS | HIGH`;
   } else {
     badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-emerald-950 text-emerald-300 border-emerald-800';
-    badge.textContent = 'NORMAL';
+    badge.textContent = `0.0 PTS | NORMAL`;
   }
 }
 
@@ -126,11 +128,12 @@ function updateOverallScore(score) {
   const badge = document.getElementById('overall-score-badge');
   if (!badge) return;
 
-  badge.textContent = `Risk: ${score} / 9`;
+  badge.textContent = `Risk: ${score} / 9.0`;
 
-  if (score >= 6) {
+  const numericScore = parseFloat(score);
+  if (numericScore >= 6.0) {
     badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-800';
-  } else if (score >= 3) {
+  } else if (numericScore >= 3.0) {
     badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800';
   } else {
     badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800';
