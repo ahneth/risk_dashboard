@@ -125,12 +125,15 @@ async function loadDashboardData() {
   updateBanner('Connecting to FRED API and pulling market series...', 'info');
 
   const seriesKeys = Object.keys(FRED_CONFIG.SERIES);
-  const allTargets = [...seriesKeys.map(k => ({ key: k, id: FRED_CONFIG.SERIES[k] })), { key: 'SP500', id: FRED_CONFIG.BENCHMARK }];
+  const allTargets = [
+    ...seriesKeys.map(k => ({ key: k, id: FRED_CONFIG.SERIES[k] })),
+    { key: 'SP500', id: FRED_CONFIG.BENCHMARK }
+  ];
 
   const results = {};
   const failedKeys = [];
 
-  // Sequential fetch prevents public CORS proxy rate limiting
+  // Sequential fetch prevents CORS proxy rate limiting
   for (const item of allTargets) {
     try {
       const data = await fetchMarkerHistory(item.key, item.id);
@@ -249,7 +252,9 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
           borderWidth: 2,
           tension: 0.2,
           fill: true,
-          spanGaps: true
+          spanGaps: true,
+          pointRadius: 0,
+          pointHitRadius: 6
         },
         {
           label: 'S&P 500 Index',
@@ -260,7 +265,9 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
           borderWidth: 2,
           tension: 0.2,
           fill: false,
-          spanGaps: true
+          spanGaps: true,
+          pointRadius: 0,
+          pointHitRadius: 6
         }
       ]
     },
@@ -322,8 +329,8 @@ function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
           borderWidth: 2,
           stepped: 'middle',
           spanGaps: true,
-          pointRadius: 2,
-          pointBackgroundColor: '#f43f5e',
+          pointRadius: 0,
+          pointHitRadius: 6,
           fill: false,
           order: 1
         },
@@ -337,6 +344,7 @@ function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
           tension: 0.2,
           spanGaps: true,
           pointRadius: 0,
+          pointHitRadius: 6,
           fill: false,
           order: 2
         }
