@@ -1,39 +1,11 @@
-/**
- * Macro Systemic Risk Dashboard Engine
- * Vanilla JavaScript implementation (compatible with Android/mobile browser protocols).
- */
+import { SERIES_IDS, RISK_THRESHOLDS } from './config.js';
+import { getLatestValidPoint, cleanSeriesData, fetchFredSeries } from './fred-api.js';
+import { initChartDefaults, renderCardChart, renderCombinedChart } from './charts.js';
 
-const charts = {};
 let apiKey = localStorage.getItem('fred_api_key') || '';
 
-// FRED Series IDs
-const SERIES_IDS = {
-  sp500: 'SP500',
-  vix: 'VIXCLS',
-  yield_curve: 'T10Y2Y',
-  credit_spread: 'BAMLH0A0HYM2',
-  sahm_rule: 'SAHMREALTIME',
-  nfci: 'NFCI',
-  stlfsi: 'STLFSI4'
-};
-
-const RISK_THRESHOLDS = {
-  vix: (val) => val >= 25.0,
-  yield_curve: (val) => val < -0.20,
-  credit_spread: (val) => val >= 5.0,
-  sahm_rule: (val) => val >= 0.50,
-  nfci: (val) => val >= 0.20,
-  stlfsi: (val) => val >= 0.50
-};
-
 document.addEventListener('DOMContentLoaded', () => {
-  // Global Chart.js defaults: removes marker dots while keeping hover indicators
-  if (typeof Chart !== 'undefined') {
-    Chart.defaults.elements.point.radius = 0;
-    Chart.defaults.elements.point.hoverRadius = 4;
-    Chart.defaults.elements.point.hitRadius = 10;
-  }
-
+  initChartDefaults();
   initApp();
 });
 
@@ -49,63 +21,13 @@ function initApp() {
   loadDashboardData();
 }
 
-/**
- * Searches backward from the latest array element to locate the newest non-null valid observation.
- * Displays individual dates for weekly/monthly lagging indicators.
- */
-function getLatestValidPoint(observations) {
-  if (!Array.isArray(observations)) return null;
-
-  for (let i = observations.length - 1; i >= 0; i--) {
-    const rawVal = observations[i]?.value;
-    if (rawVal !== undefined && rawVal !== null && rawVal !== '.' && !isNaN(parseFloat(rawVal))) {
-      return {
-        value: parseFloat(rawVal),
-        date: observations[i].date
-      };
-    }
-  }
-  return null;
-}
-
-/**
- * Filters out missing/holiday values ('.') and formats clean coordinates for Chart.js
- */
-function cleanSeriesData(observations) {
-  if (!Array.isArray(observations)) return [];
-
-  return observations
-    .filter(obs => obs.value !== '.' && obs.value !== null && obs.value !== undefined)
-    .map(obs => ({
-      x: obs.date,
-      y: parseFloat(obs.value)
-    }))
-    .filter(point => !isNaN(point.y));
-}
-
-/**
- * Queries FRED API via CORS proxy to guarantee mobile and browser cross-origin success.
- */
-async function fetchFredSeries(seriesId) {
-  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fredUrl)}`;
-
-  const response = await fetch(proxyUrl);
-  if (!response.ok) {
-    throw new Error(`FRED API fetch failed (${response.status}) for ${seriesId}`);
-  }
-
-  const data = await response.json();
-  return data.observations || [];
-}
-
 async function loadDashboardData() {
   updateBanner('Fetching macroeconomic data from FRED...', 'info');
 
   const seriesData = {};
   const fetchPromises = Object.entries(SERIES_IDS).map(async ([key, seriesId]) => {
     try {
-      const obs = await fetchFredSeries(seriesId);
+      const obs = await fetchFredSeries(seriesId, apiKey);
       seriesData[key] = obs;
     } catch (err) {
       console.error(`Failed loading ${key}:`, err);
@@ -137,24 +59,21 @@ async function loadDashboardData() {
     renderCardChart(`${id}Chart`, cleanData, isHigh ? '#f43f5e' : '#38bdf8');
   });
 
-  // Header S&P 500 Badge
   const sp500Latest = getLatestValidPoint(seriesData.sp500 || []);
   const sp500Badge = document.getElementById('sp500-badge');
   if (sp500Badge && sp500Latest) {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
-  // Header Systemic Risk Badge
   const scoreDisplay = Math.min(Math.round(totalRiskScore), 9);
   updateOverallScore(scoreDisplay);
 
-  // Render Combined Top Line Chart
   renderCombinedChart(
     cleanSeriesData(seriesData.sp500 || []),
     cleanSeriesData(seriesData.vix || [])
   );
 
-  updateBanner('Dashboard updated successfully. All series parsed with individual latest dates.', 'success');
+  updateBanner('Dashboard updated successfully.', 'success');
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
@@ -229,124 +148,6 @@ function updateBanner(message, type = 'info') {
   else if (type === 'warning') banner.className = baseStyles + 'bg-amber-950/60 text-amber-200 border-amber-800';
   else if (type === 'success') banner.className = baseStyles + 'bg-slate-900 text-slate-300 border-slate-800';
   else banner.className = baseStyles + 'bg-slate-900 text-slate-400 border-slate-800';
-}
-
-/* Chart Rendering Engine */
-
-function renderCardChart(canvasId, dataPoints, strokeColor = '#38bdf8') {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-
-  if (charts[canvasId]) {
-    charts[canvasId].destroy();
-  }
-
-  charts[canvasId] = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: dataPoints.map(p => p.x),
-      datasets: [{
-        data: dataPoints.map(p => p.y),
-        borderColor: strokeColor,
-        borderWidth: 1.5,
-        fill: false,
-        tension: 0.2,
-        pointRadius: 0,
-        pointHoverRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        x: { display: false },
-        y: {
-          display: true,
-          grid: { color: 'rgba(51, 65, 85, 0.3)' },
-          ticks: {
-            color: '#64748b',
-            font: { size: 9 },
-            maxTicksLimit: 4
-          }
-        }
-      }
-    }
-  });
-}
-
-function renderCombinedChart(sp500Data, vixData) {
-  const canvas = document.getElementById('combinedChart');
-  if (!canvas) return;
-
-  if (charts['combinedChart']) {
-    charts['combinedChart'].destroy();
-  }
-
-  charts['combinedChart'] = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: sp500Data.map(p => p.x),
-      datasets: [
-        {
-          label: 'S&P 500 Index',
-          data: sp500Data.map(p => p.y),
-          borderColor: '#38bdf8',
-          borderWidth: 2,
-          yAxisID: 'y_sp500',
-          tension: 0.1,
-          pointRadius: 0,
-          pointHoverRadius: 4
-        },
-        {
-          label: 'VIX Volatility',
-          data: vixData.map(p => p.y),
-          borderColor: '#f43f5e',
-          borderWidth: 1.5,
-          yAxisID: 'y_vix',
-          tension: 0.1,
-          pointRadius: 0,
-          pointHoverRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      plugins: {
-        legend: {
-          display: true,
-          labels: { color: '#94a3b8', font: { size: 11 } }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: '#64748b', font: { size: 10 }, maxTicksLimit: 8 }
-        },
-        y_sp500: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          grid: { color: 'rgba(51, 65, 85, 0.4)' },
-          ticks: { color: '#38bdf8', font: { size: 10 } }
-        },
-        y_vix: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#f43f5e', font: { size: 10 } }
-        }
-      }
-    }
-  });
 }
 
 function setupModalEvents() {
