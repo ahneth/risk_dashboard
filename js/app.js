@@ -1,6 +1,7 @@
-import { SERIES_IDS, RISK_THRESHOLDS } from './config.js';
+import { SERIES_IDS } from './config.js';
 import { getLatestValidPoint, cleanSeriesData, fetchFredSeries } from './fred-api.js';
 import { initChartDefaults, renderCardChart, renderCombinedChart } from './charts.js';
+import { evaluatePointRisk, calculateAggregateRiskScore } from './risk-engine.js';
 
 let apiKey = localStorage.getItem('fred_api_key') || '';
 
@@ -37,7 +38,7 @@ async function loadDashboardData() {
 
   await Promise.all(fetchPromises);
 
-  let totalRiskScore = 0;
+  const latestValues = {};
   const indicators = ['vix', 'yield_curve', 'credit_spread', 'sahm_rule', 'nfci', 'stlfsi'];
 
   indicators.forEach((id) => {
@@ -45,37 +46,35 @@ async function loadDashboardData() {
     const unit = (id === 'yield_curve' || id === 'credit_spread' || id === 'sahm_rule') ? '%' : '';
 
     const latest = updateCardValue(id, obs, unit);
-    let isHigh = false;
-
     if (latest) {
-      isHigh = RISK_THRESHOLDS[id] ? RISK_THRESHOLDS[id](latest.value) : false;
-      const points = isHigh ? 1.5 : 0;
-      totalRiskScore += points;
-      updateIndicatorBadge(id, isHigh, points);
+      latestValues[id] = latest.value;
+      const { score0to9 } = evaluatePointRisk(id, latest.value);
+      updateIndicatorBadge(id, score0to9);
     } else {
-      updateIndicatorBadge(id, false, 0, true);
+      updateIndicatorBadge(id, 0, true);
     }
 
     const cleanData = cleanSeriesData(obs);
 
-    // Calculate historical risk score trendline (0.0 or 1.5) for each data point
-    const thresholdFn = RISK_THRESHOLDS[id];
+    // Continuous 0.0 - 9.0 risk score trendline calculated via risk-engine.js
     const riskTrend = cleanData.map(pt => ({
       x: pt.x,
-      y: thresholdFn && thresholdFn(pt.y) ? 1.5 : 0.0
+      y: evaluatePointRisk(id, pt.y).score0to9
     }));
 
-    renderCardChart(`${id}Chart`, cleanData, riskTrend, isHigh ? '#f43f5e' : '#38bdf8');
+    const currentScore = latestValues[id] !== undefined ? evaluatePointRisk(id, latestValues[id]).score0to9 : 0;
+    renderCardChart(`${id}Chart`, cleanData, riskTrend, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
   });
+
+  // Calculate weighted total risk score out of 9.0
+  const totalScore = calculateAggregateRiskScore(latestValues);
+  updateOverallScore(totalScore);
 
   const sp500Latest = getLatestValidPoint(seriesData.sp500 || []);
   const sp500Badge = document.getElementById('sp500-badge');
   if (sp500Badge && sp500Latest) {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
-
-  const formattedScore = (Math.round(totalRiskScore * 10) / 10).toFixed(1);
-  updateOverallScore(formattedScore);
 
   renderCombinedChart(
     cleanSeriesData(seriesData.sp500 || []),
@@ -112,7 +111,7 @@ function updateCardValue(indicatorId, observations, unit = '') {
   return latest;
 }
 
-function updateIndicatorBadge(indicatorId, isHighRisk, points = 0, isMissing = false) {
+function updateIndicatorBadge(indicatorId, score0to9 = 0, isMissing = false) {
   const badge = document.getElementById(`${indicatorId}-score-badge`) ||
                 document.getElementById(`${indicatorId.replace('_', '-')}-score-badge`);
   if (!badge) return;
@@ -123,12 +122,17 @@ function updateIndicatorBadge(indicatorId, isHighRisk, points = 0, isMissing = f
     return;
   }
 
-  if (isHighRisk) {
+  const formattedScore = score0to9.toFixed(1);
+
+  if (score0to9 >= 6.0) {
     badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-rose-950 text-rose-300 border-rose-800 animate-pulse';
-    badge.textContent = `+${points.toFixed(1)} PTS | HIGH`;
+    badge.textContent = `RISK: ${formattedScore} / 9.0`;
+  } else if (score0to9 >= 3.0) {
+    badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-amber-950 text-amber-300 border-amber-800';
+    badge.textContent = `RISK: ${formattedScore} / 9.0`;
   } else {
     badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-emerald-950 text-emerald-300 border-emerald-800';
-    badge.textContent = `0.0 PTS | NORMAL`;
+    badge.textContent = `RISK: ${formattedScore} / 9.0`;
   }
 }
 
@@ -136,7 +140,7 @@ function updateOverallScore(score) {
   const badge = document.getElementById('overall-score-badge');
   if (!badge) return;
 
-  badge.textContent = `Risk: ${score} / 9.0`;
+  badge.textContent = `Total Risk: ${score} / 9.0`;
 
   const numericScore = parseFloat(score);
   if (numericScore >= 6.0) {
