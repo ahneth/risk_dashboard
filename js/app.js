@@ -1,8 +1,8 @@
 // js/app.js
 import { FRED_CONFIG } from './config.js';
 import { fetchMarkerHistory } from './fred-api.js';
-import { evaluateRiskRegime } from './risk-engine.js';
-import { renderTrendChart } from './charts.js';
+import { evaluateRiskRegime, calculateFactorRiskScore, getRiskColorMeta } from './risk-engine.js';
+import { renderOverallChart, renderMarkerChart } from './charts.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   setupKeyModalEvents();
@@ -27,8 +27,6 @@ function setupKeyModalEvents() {
       localStorage.setItem('FRED_API_KEY', val);
       hideKeyModal();
       initializeDashboard();
-    } else {
-      document.getElementById('modal-error')?.classList.remove('hidden');
     }
   });
 
@@ -38,7 +36,7 @@ function setupKeyModalEvents() {
   });
 
   changeKeyBtn?.addEventListener('click', () => {
-    keyInput.value = FRED_CONFIG.API_KEY;
+    if (keyInput) keyInput.value = FRED_CONFIG.API_KEY;
     showKeyModal();
   });
 }
@@ -58,7 +56,6 @@ async function initializeDashboard() {
   const seriesEntries = Object.entries(FRED_CONFIG.SERIES);
   const dataset = {};
 
-  // Fetch series using key & seriesId
   for (const [key, seriesId] of seriesEntries) {
     try {
       const history = await fetchMarkerHistory(key, seriesId);
@@ -69,33 +66,59 @@ async function initializeDashboard() {
     }
   }
 
-  // Render individual indicator cards and line charts
+  // Calculate risk score history for each dataset
+  Object.keys(FRED_CONFIG.SERIES).forEach((key) => {
+    if (dataset[key]) {
+      dataset[key] = dataset[key].map(point => ({
+        ...point,
+        riskScore: calculateFactorRiskScore(key, point.value)
+      }));
+    }
+  });
+
+  // Calculate overall composite regime and history
+  const regimeResult = evaluateRiskRegime(dataset);
+
+  // Update Global Banner & Header Score Badge
+  if (banner) {
+    const meta = getRiskColorMeta(regimeResult.roundedScore);
+    banner.innerText = `MARKET RISK REGIME: ${regimeResult.overallRegime} (${regimeResult.compositeScore} / 9)`;
+    banner.className = `status-banner ${meta.bannerClass}`;
+  }
+
+  const overallScoreElem = document.getElementById('overall-score-badge');
+  if (overallScoreElem) {
+    const meta = getRiskColorMeta(regimeResult.roundedScore);
+    overallScoreElem.innerText = `${regimeResult.compositeScore} / 9`;
+    overallScoreElem.className = `text-lg font-black px-3 py-1 rounded-full border ${meta.badgeClass}`;
+  }
+
+  // 1. Render First Chart: Overall Risk Score Chart
+  if (regimeResult.compositeHistory.length > 0) {
+    renderOverallChart('overallChart', regimeResult.compositeHistory.slice(-24));
+  }
+
+  // 2. Render Individual Marker Charts & Badges
   Object.keys(FRED_CONFIG.SERIES).forEach((key) => {
     const history = dataset[key] || [];
     const canvasId = `${key.toLowerCase()}Chart`;
     const valElem = document.getElementById(`${key.toLowerCase()}-val`);
+    const scoreBadge = document.getElementById(`${key.toLowerCase()}-score-badge`);
 
     if (history.length > 0) {
-      const latestVal = history[history.length - 1].value;
+      const latestPoint = history[history.length - 1];
+      const latestVal = latestPoint.value;
+      const latestScore = latestPoint.riskScore;
+      const meta = getRiskColorMeta(latestScore);
+
       if (valElem) valElem.innerText = typeof latestVal === 'number' ? latestVal.toFixed(2) : latestVal;
-      renderTrendChart(canvasId, key, history.slice(-24));
-    } else {
-      if (valElem) valElem.innerText = "N/A";
+      
+      if (scoreBadge) {
+        scoreBadge.innerText = `Risk Score: ${latestScore} / 9`;
+        scoreBadge.className = `text-xs font-bold px-2.5 py-1 rounded-md border ${meta.badgeClass}`;
+      }
+
+      renderMarkerChart(canvasId, key, history.slice(-24));
     }
   });
-
-  // Calculate weighted composite score
-  const latestValues = {};
-  Object.keys(dataset).forEach(k => {
-    if (dataset[k].length > 0) {
-      latestValues[k] = dataset[k][dataset[k].length - 1].value;
-    }
-  });
-
-  const regimeResult = evaluateRiskRegime(latestValues);
-  
-  if (banner) {
-    banner.innerText = `MARKET RISK REGIME: ${regimeResult.overallRegime} (WEIGHTED SCORE: ${regimeResult.compositeScore}/100)`;
-    banner.className = `status-banner regime-${regimeResult.overallRegime.toLowerCase()}`;
-  }
 }
