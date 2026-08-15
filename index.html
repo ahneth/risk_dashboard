@@ -3,209 +3,170 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Macro Market Risk Matrix</title>
-  
+  <title>Macro Systemic Risk Dashboard</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    .status-banner {
-      @apply py-3 px-6 text-center font-bold text-sm tracking-wider uppercase rounded-xl transition-all duration-300 shadow-md;
-    }
-  </style>
 </head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
 
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between antialiased">
-
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
-    
-    <!-- Top Header -->
-    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-      <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-          <span>📊</span> Macro Market Risk Matrix
-        </h1>
-        <p class="text-xs text-slate-400 mt-1">Real-time systemic risk monitoring (0–9 scale)</p>
+  <!-- Header Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <h1 class="text-base font-bold text-slate-100 tracking-tight">Macro Risk Dashboard</h1>
+        <span id="overall-score-badge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+          Risk: -- / 9
+        </span>
+        <span id="sp500-badge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-sky-950 text-sky-300 border border-sky-800">
+          S&P: --
+        </span>
       </div>
+      <button id="btn-change-key" class="text-xs font-medium px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
+        FRED API Key
+      </button>
+    </div>
+  </header>
 
-      <div class="flex items-center gap-3">
-        <button id="btn-change-key" class="text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white px-3.5 py-2 rounded-lg border border-slate-800 transition flex items-center gap-1.5 shadow-sm">
-          <span>🔑</span> API Key
-        </button>
-      </div>
-    </header>
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <!-- Status Banner -->
+    <div id="risk-banner" class="status-banner border p-3 rounded-lg text-sm font-medium transition-all bg-slate-900 text-slate-400 border-slate-800">
+      Initializing dashboard...
+    </div>
 
-    <!-- Global Risk Status Banner -->
-    <section>
-      <div id="risk-banner" class="status-banner bg-slate-900 text-slate-400 border border-slate-800">
-        Loading Risk Matrix Data...
-      </div>
-    </section>
-
-    <!-- COMBINED CHART: Systemic Risk Score vs. S&P 500 Index -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-4">
-        <div>
-          <h2 class="text-lg font-bold text-white flex items-center gap-2">
-            <span>🛡️ vs 📈</span> Systemic Risk Score vs. S&P 500
-          </h2>
-          <p class="text-xs text-slate-400">Left Axis: Composite Risk Score (0–9) &bull; Right Axis: S&P 500 Price ($)</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <span id="overall-score-badge" class="text-xs font-bold px-3 py-1 rounded-full border bg-rose-950/80 text-rose-400 border-rose-800/60 font-mono">
-            Risk: -- / 9
-          </span>
-          <span id="sp500-badge" class="text-xs font-bold px-3 py-1 rounded-full border bg-sky-950/80 text-sky-400 border-sky-800/60 font-mono">
-            S&P: --
-          </span>
-        </div>
-      </div>
-      <div class="h-80 w-full">
+    <!-- Dual-Axis Combined Header Chart -->
+    <section class="p-5 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
+      <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+        Systemic Risk Score vs. S&P 500 Index
+      </h2>
+      <div class="h-72 w-full">
         <canvas id="combinedChart"></canvas>
       </div>
     </section>
 
-    <!-- 6 INDIVIDUAL MARKER CHARTS GRID -->
-    <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-      <!-- 1. VIX -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
-        <div class="flex justify-between items-start">
+    <!-- Individual Indicator Cards Grid -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- VIX Card -->
+      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center justify-between mb-2">
           <div>
-            <h3 class="text-sm font-bold text-slate-200">CBOE VIX Index</h3>
-            <p class="text-[11px] text-slate-500">Raw: <span id="vix-val" class="font-mono text-indigo-400">--</span></p>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">CBOE VIX Index</h3>
+            <p id="vix-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
           </div>
-          <span id="vix-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">--</span>
+          <span id="vix-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
+            Score: --/9
+          </span>
         </div>
-        <div class="h-44 w-full">
+        <div class="h-32 w-full mt-2">
           <canvas id="vixChart"></canvas>
         </div>
-        <div class="border-t border-slate-800/80 pt-3 text-[11px] space-y-1.5 text-slate-400">
-          <p><strong class="text-slate-300">What it is:</strong> Measures 30-day expected stock market volatility derived from S&P 500 options pricing ("Wall Street Fear Gauge").</p>
-          <p><strong class="text-rose-400">High Risk (7–9):</strong> Indicates acute market panic, forced institutional liquidations, or extreme downside hedging demand (VIX > 30–35).</p>
-        </div>
       </div>
 
-      <!-- 2. Yield Curve -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
-        <div class="flex justify-between items-start">
+      <!-- Yield Curve Card -->
+      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center justify-between mb-2">
           <div>
-            <h3 class="text-sm font-bold text-slate-200">Yield Curve (10Y-2Y)</h3>
-            <p class="text-[11px] text-slate-500">Raw: <span id="yield_curve-val" class="font-mono text-indigo-400">--</span>%</p>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Yield Curve (10Y-2Y)</h3>
+            <p id="yield_curve-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
           </div>
-          <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">--</span>
+          <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
+            Score: --/9
+          </span>
         </div>
-        <div class="h-44 w-full">
+        <div class="h-32 w-full mt-2">
           <canvas id="yield_curveChart"></canvas>
         </div>
-        <div class="border-t border-slate-800/80 pt-3 text-[11px] space-y-1.5 text-slate-400">
-          <p><strong class="text-slate-300">What it is:</strong> Yield difference between 10-Year and 2-Year US Treasury bonds; the gold-standard forward recession indicator.</p>
-          <p><strong class="text-rose-400">High Risk (7–9):</strong> Deep inversion (2Y yield exceeds 10Y) or rapid steepening out of inversion, historically preceding major recessions.</p>
-        </div>
       </div>
 
-      <!-- 3. Credit Spread -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
-        <div class="flex justify-between items-start">
+      <!-- Credit Spread Card -->
+      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center justify-between mb-2">
           <div>
-            <h3 class="text-sm font-bold text-slate-200">HY Credit Spread</h3>
-            <p class="text-[11px] text-slate-500">Raw: <span id="credit_spread-val" class="font-mono text-indigo-400">--</span>%</p>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Credit Spread (HY OAS)</h3>
+            <p id="credit_spread-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
           </div>
-          <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">--</span>
+          <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
+            Score: --/9
+          </span>
         </div>
-        <div class="h-44 w-full">
+        <div class="h-32 w-full mt-2">
           <canvas id="credit_spreadChart"></canvas>
         </div>
-        <div class="border-t border-slate-800/80 pt-3 text-[11px] space-y-1.5 text-slate-400">
-          <p><strong class="text-slate-300">What it is:</strong> Extra yield demanded by investors to buy high-yield junk bonds over risk-free Treasuries.</p>
-          <p><strong class="text-rose-400">High Risk (7–9):</strong> Widenings above 6–7% signal corporate insolvency fears, credit market freezes, and tightening lending conditions.</p>
-        </div>
       </div>
 
-      <!-- 4. Sahm Rule -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
-        <div class="flex justify-between items-start">
+      <!-- Sahm Rule Card -->
+      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center justify-between mb-2">
           <div>
-            <h3 class="text-sm font-bold text-slate-200">Sahm Rule Indicator</h3>
-            <p class="text-[11px] text-slate-500">Raw: <span id="sahm_rule-val" class="font-mono text-indigo-400">--</span></p>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sahm Rule Recession</h3>
+            <p id="sahm_rule-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
           </div>
-          <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">--</span>
+          <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
+            Score: --/9
+          </span>
         </div>
-        <div class="h-44 w-full">
+        <div class="h-32 w-full mt-2">
           <canvas id="sahm_ruleChart"></canvas>
         </div>
-        <div class="border-t border-slate-800/80 pt-3 text-[11px] space-y-1.5 text-slate-400">
-          <p><strong class="text-slate-300">What it is:</strong> Real-time labor metric tracking the 3-month moving average of national unemployment relative to its 12-month low.</p>
-          <p><strong class="text-rose-400">High Risk (7–9):</strong> Reaching or exceeding +0.50% signals that a broader macroeconomic recession has officially triggered.</p>
-        </div>
       </div>
 
-      <!-- 5. NFCI -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
-        <div class="flex justify-between items-start">
+      <!-- NFCI Card -->
+      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center justify-between mb-2">
           <div>
-            <h3 class="text-sm font-bold text-slate-200">Chicago Fed NFCI</h3>
-            <p class="text-[11px] text-slate-500">Raw: <span id="nfci-val" class="font-mono text-indigo-400">--</span></p>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chicago Fed NFCI</h3>
+            <p id="nfci-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
           </div>
-          <span id="nfci-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">--</span>
+          <span id="nfci-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
+            Score: --/9
+          </span>
         </div>
-        <div class="h-44 w-full">
+        <div class="h-32 w-full mt-2">
           <canvas id="nfciChart"></canvas>
         </div>
-        <div class="border-t border-slate-800/80 pt-3 text-[11px] space-y-1.5 text-slate-400">
-          <p><strong class="text-slate-300">What it is:</strong> Aggregates 105 financial indicators measuring conditions in risk, credit, and leverage markets.</p>
-          <p><strong class="text-rose-400">High Risk (7–9):</strong> Values above +0.50 indicate substantially tighter-than-historical liquidity conditions and systemic stress.</p>
-        </div>
       </div>
 
-      <!-- 6. Market Breadth -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-700 transition space-y-4">
-        <div class="flex justify-between items-start">
+      <!-- Financial Stress Index Card (Replaces Market Breadth) -->
+      <div class="p-4 rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center justify-between mb-2">
           <div>
-            <h3 class="text-sm font-bold text-slate-200">Market Breadth</h3>
-            <p class="text-[11px] text-slate-500">Raw: <span id="breadth-val" class="font-mono text-indigo-400">--</span></p>
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Financial Stress (STLFSI)</h3>
+            <p id="stlfsi-val" class="text-xl font-bold text-slate-100 mt-1">--</p>
           </div>
-          <span id="breadth-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">--</span>
+          <span id="stlfsi-score-badge" class="text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-400 border-slate-700">
+            Score: --/9
+          </span>
         </div>
-        <div class="h-44 w-full">
-          <canvas id="breadthChart"></canvas>
-        </div>
-        <div class="border-t border-slate-800/80 pt-3 text-[11px] space-y-1.5 text-slate-400">
-          <p><strong class="text-slate-300">What it is:</strong> Measures stock market participation (via index breadth/trend line levels across equities).</p>
-          <p><strong class="text-rose-400">High Risk (7–9):</strong> Severe deterioration in constituent performance leaves overall index rallies vulnerable to sharp pullbacks.</p>
+        <div class="h-32 w-full mt-2">
+          <canvas id="stlfsiChart"></canvas>
         </div>
       </div>
-
-    </main>
-
-    <footer class="text-center text-xs text-slate-600 border-t border-slate-900 pt-6">
-      Macro Risk Dashboard &bull; Powered by St. Louis Fed FRED API
-    </footer>
-  </div>
+    </section>
+  </main>
 
   <!-- API Key Modal -->
   <div id="key-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-      <div class="space-y-1">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">🔑 FRED API Key</h3>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Enter your FRED API key to load live data. Your key is stored locally in your browser.
-        </p>
-      </div>
-      <div class="space-y-2">
-        <input type="password" id="modal-key-input" placeholder="Paste FRED API key here..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 font-mono" />
-      </div>
-      <div class="flex items-center justify-end gap-2 pt-2">
-        <button id="btn-save-key" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition">Save & Continue</button>
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl max-w-md w-full space-y-4 shadow-2xl">
+      <h2 class="text-base font-bold text-slate-100">FRED API Key Required</h2>
+      <p class="text-xs text-slate-400 leading-relaxed">
+        Enter your 32-character FRED API key to query macro economic time series data directly from the Federal Reserve Bank of St. Louis.
+      </p>
+      <input
+        id="modal-key-input"
+        type="password"
+        placeholder="e.g. abc123def4567890..."
+        class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded text-sm text-slate-200 focus:outline-none focus:border-rose-500"
+      />
+      <div class="flex justify-end space-x-2 pt-2">
+        <button id="btn-save-key" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-semibold transition">
+          Save Key & Load Dashboard
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- At the bottom of index.html -->
-  <script type="module" src="js/app.js?v=2.2"></script>
-  
+  <!-- Entry JavaScript Module -->
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
-
-
-
