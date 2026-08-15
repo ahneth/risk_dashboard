@@ -20,7 +20,6 @@ function initApp() {
   loadDashboardData();
 }
 
-/* API Key Modal & UI Status Management */
 function setupModal() {
   const modalKeyInput = document.getElementById('modal-key-input');
   const btnChangeKey = document.getElementById('btn-change-key');
@@ -65,7 +64,7 @@ function updateBanner(message, status = 'info') {
   banner.className = `status-banner border ${statusStyles[status] || statusStyles.info}`;
 }
 
-/* Indicator Risk Scoring (0 to 9 scale) */
+/* Individual Indicator Risk Scoring (0 to 9 scale) */
 function computeRiskScore(key, value) {
   if (value === undefined || value === null || isNaN(value)) return 0;
 
@@ -110,10 +109,10 @@ function computeRiskScore(key, value) {
       return 1;
 
     case 'BREADTH':
-      // Evaluated as index momentum score for Wilshire 5000
-      if (value < 40000) return 8;
-      if (value < 45000) return 6;
-      if (value < 50000) return 4;
+      // NASDAQ Composite Index evaluation
+      if (value < 12000) return 8;
+      if (value < 14000) return 6;
+      if (value < 16000) return 4;
       return 2;
 
     default:
@@ -121,7 +120,6 @@ function computeRiskScore(key, value) {
   }
 }
 
-/* Main Execution Pipeline */
 async function loadDashboardData() {
   updateBanner('Connecting to FRED API and pulling market series...', 'info');
 
@@ -131,7 +129,6 @@ async function loadDashboardData() {
     fetchMarkerHistory('SP500', FRED_CONFIG.BENCHMARK).then(data => ({ key: 'SP500', data }))
   ];
 
-  // Settles each request independently without triggering fallback mock data
   const settledResults = await Promise.allSettled(fetchPromises);
   const results = {};
   const failedKeys = [];
@@ -142,7 +139,7 @@ async function loadDashboardData() {
     } else {
       const targetKey = idx < seriesKeys.length ? seriesKeys[idx] : 'SP500';
       failedKeys.push(targetKey);
-      console.error(`[API Fail] ${targetKey}:`, res.reason);
+      console.error(`[API Error] ${targetKey}:`, res.reason);
     }
   });
 
@@ -151,21 +148,20 @@ async function loadDashboardData() {
     return;
   }
 
-  // Aggregate dates from successful API responses
   const allDates = new Set();
   Object.values(results).forEach(series => {
     series.forEach(obs => allDates.add(obs.date));
   });
   const sortedDates = Array.from(allDates).sort();
 
-  // Index observations by date
   const dataMaps = {};
   Object.keys(results).forEach(key => {
     dataMaps[key] = new Map(results[key].map(obs => [obs.date, obs.value]));
   });
 
-  // Calculate timeline scores for valid API series
   const validSeriesKeys = seriesKeys.filter(k => results[k]);
+
+  // Overall Composite Timeline
   const riskScoresTimeline = sortedDates.map(date => {
     let totalScore = 0;
     let validCount = 0;
@@ -183,7 +179,6 @@ async function loadDashboardData() {
 
   const sp500Timeline = results['SP500'] ? sortedDates.map(date => dataMaps['SP500'].get(date) ?? null) : [];
 
-  // Update Top Score Cards
   const latestDate = sortedDates[sortedDates.length - 1];
   const currentRiskScore = riskScoresTimeline[riskScoresTimeline.length - 1];
   const currentSP500 = results['SP500'] ? dataMaps['SP500'].get(latestDate) : null;
@@ -191,7 +186,7 @@ async function loadDashboardData() {
   document.getElementById('overall-score-badge').textContent = `Risk: ${currentRiskScore ?? '--'} / 9`;
   document.getElementById('sp500-badge').textContent = `S&P: ${currentSP500 ? currentSP500.toLocaleString() : 'N/A'}`;
 
-  // Update Individual Metric Cards
+  // Update Individual Badges & Render Charts
   seriesKeys.forEach(key => {
     const valElem = document.getElementById(`${key.toLowerCase()}-val`);
     const scoreBadge = document.getElementById(`${key.toLowerCase()}-score-badge`);
@@ -215,17 +210,19 @@ async function loadDashboardData() {
       else if (score >= 4) scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-amber-950 text-amber-400 border-amber-800';
       else scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-emerald-950 text-emerald-400 border-emerald-800';
     }
+
+    // Generate individual raw value and risk score histories
+    const rawHistory = sortedDates.map(d => dataMaps[key].get(d) ?? null);
+    const scoreHistory = sortedDates.map(d => {
+      const rawVal = dataMaps[key].get(d);
+      return rawVal !== undefined ? computeRiskScore(key, rawVal) : null;
+    });
+
+    renderSingleChart(`${key.toLowerCase()}Chart`, key, sortedDates, rawHistory, scoreHistory);
   });
 
-  // Render Valid Charts
   renderCombinedChart(sortedDates, riskScoresTimeline, sp500Timeline);
 
-  validSeriesKeys.forEach(key => {
-    const history = sortedDates.map(d => dataMaps[key].get(d) ?? null);
-    renderSingleChart(`${key.toLowerCase()}Chart`, key, sortedDates, history);
-  });
-
-  // Status Banner Feedback
   if (failedKeys.length > 0) {
     updateBanner(`Partial API Failure: Missing data for [${failedKeys.join(', ')}]`, 'warning');
   } else if (currentRiskScore >= 7) {
@@ -237,7 +234,7 @@ async function loadDashboardData() {
   }
 }
 
-/* Dual-Axis Combined Chart */
+/* Dual-Axis Combined Header Chart */
 function renderCombinedChart(dates, riskScores, sp500Values) {
   const ctx = document.getElementById('combinedChart').getContext('2d');
   if (chartInstances['combinedChart']) {
@@ -306,8 +303,8 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
   });
 }
 
-/* Individual Indicator Chart */
-function renderSingleChart(canvasId, label, dates, values) {
+/* Individual Indicator Dual-Axis Chart (Risk Score + Raw Metric) */
+function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
@@ -320,29 +317,64 @@ function renderSingleChart(canvasId, label, dates, values) {
     type: 'line',
     data: {
       labels: dates,
-      datasets: [{
-        label: label,
-        data: values,
-        borderColor: '#818cf8',
-        backgroundColor: 'rgba(129, 140, 248, 0.08)',
-        borderWidth: 1.5,
-        tension: 0.2,
-        fill: true,
-        pointRadius: 2
-      }]
+      datasets: [
+        {
+          label: 'Risk Score (0–9)',
+          data: scoreValues,
+          borderColor: '#f43f5e',
+          backgroundColor: 'rgba(244, 63, 94, 0.15)',
+          yAxisID: 'yScore',
+          borderWidth: 1.5,
+          tension: 0.2,
+          fill: true,
+          pointRadius: 1
+        },
+        {
+          label: `${label} (Raw)`,
+          data: rawValues,
+          borderColor: '#818cf8',
+          borderDash: [3, 3],
+          yAxisID: 'yRaw',
+          borderWidth: 1.5,
+          tension: 0.2,
+          fill: false,
+          pointRadius: 1
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color: '#94a3b8', font: { size: 9 }, boxWidth: 12 }
+        }
+      },
       scales: {
         x: {
           grid: { color: '#1e293b' },
-          ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 6 }
+          ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 5 }
         },
-        y: {
+        yScore: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          min: 0,
+          max: 9,
+          title: { display: true, text: 'Score', color: '#f43f5e', font: { size: 9 } },
           grid: { color: '#1e293b' },
-          ticks: { color: '#94a3b8', font: { size: 9 } }
+          ticks: { color: '#f43f5e', font: { size: 8 }, stepSize: 3 }
+        },
+        yRaw: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: { display: true, text: 'Raw', color: '#818cf8', font: { size: 9 } },
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#818cf8', font: { size: 8 } }
         }
       }
     }
