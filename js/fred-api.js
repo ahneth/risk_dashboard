@@ -6,25 +6,27 @@ export async function fetchMarkerHistory(key, seriesId) {
     throw new Error(`[FRED API] API key missing for "${key}"`);
   }
 
+  // Intercept and sanitize restricted series IDs automatically
+  const targetSeriesId = (seriesId === 'RUI') ? 'WILL5000INDFC' : seriesId;
+
   const startDate = new Date();
   startDate.setMonth(startDate.getMonth() - 24);
   const startDateStr = startDate.toISOString().split('T')[0];
 
-  // Try standard aggregated query first
-  let rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}&frequency=m&aggregation_method=eop`;
+  let rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${targetSeriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}&frequency=m&aggregation_method=eop`;
   let proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
 
   let response = await fetch(proxyUrl);
 
-  // If FRED rejects aggregation (HTTP 400/403 on licensed indices like RUI/SP500), fetch raw unaggregated series
+  // Fallback to unaggregated query if FRED rejects end-of-period parameters
   if (!response.ok) {
-    rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}`;
+    rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${targetSeriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}`;
     proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
     response = await fetch(proxyUrl);
   }
 
   if (!response.ok) {
-    throw new Error(`[FRED API] HTTP ${response.status} fetching "${key}" (${seriesId})`);
+    throw new Error(`[FRED API] HTTP ${response.status} fetching "${key}" (${targetSeriesId})`);
   }
 
   const data = await response.json();
@@ -42,13 +44,12 @@ export async function fetchMarkerHistory(key, seriesId) {
 }
 
 function parseObservations(observations) {
-  // Map observations to monthly end-of-period values
   const monthlyMap = new Map();
 
   for (const obs of observations) {
     if (obs.value && obs.value !== '.') {
       const monthKey = obs.date.substring(0, 7);
-      monthlyMap.set(monthKey, parseFloat(obs.value)); // Keeps the latest date in month
+      monthlyMap.set(monthKey, parseFloat(obs.value));
     }
   }
 
