@@ -64,7 +64,6 @@ function updateBanner(message, status = 'info') {
   banner.className = `status-banner border ${statusStyles[status] || statusStyles.info}`;
 }
 
-/* Individual Indicator Risk Scoring (0 to 9 scale) */
 function computeRiskScore(key, value) {
   if (value === undefined || value === null || isNaN(value)) return 0;
 
@@ -101,26 +100,22 @@ function computeRiskScore(key, value) {
       return 1;
 
     case 'NFCI':
-      // Adjusted for typical NFCI distribution (-0.70 to +0.75+)
-      if (value >= 0.75) return 9;   // Highly restrictive / crisis
-      if (value >= 0.50) return 8;   // Severe tightening
-      if (value >= 0.20) return 6;   // Moderate tightening
-      if (value >= 0.00) return 4;   // Neutral conditions
-      if (value >= -0.30) return 3;  // Mildly loose
-      if (value >= -0.50) return 2;  // Standard loose conditions
-      return 1;                      // Extremely loose (-0.50+)
+      if (value >= 0.75) return 9;
+      if (value >= 0.50) return 8;
+      if (value >= 0.20) return 6;
+      if (value >= 0.00) return 4;
+      if (value >= -0.30) return 3;
+      if (value >= -0.50) return 2;
+      return 1;
 
-    case 'BREADTH': {
-      // Benchmark against recent peak baseline (~20,000)
-      const peak = 20000; 
-      const drawdown = (peak - value) / peak;
-
-      if (drawdown >= 0.30) return 9; // > 30% crash
-      if (drawdown >= 0.20) return 8; // > 20% bear market
-      if (drawdown >= 0.10) return 6; // > 10% correction
-      if (drawdown >= 0.05) return 4; // > 5% dip
-      return 1;                       // Steady / near peak
-    }
+    case 'STLFSI':
+      // St. Louis Fed Financial Stress Index (0.0 = Average Stress)
+      if (value >= 1.50) return 9;   // Critical financial stress
+      if (value >= 1.00) return 8;   // High market stress
+      if (value >= 0.50) return 6;   // Moderate stress
+      if (value >= 0.00) return 4;   // Average stress level
+      if (value >= -0.50) return 2;  // Low stress / calm market
+      return 1;                      // Very low stress
 
     default:
       return 0;
@@ -168,7 +163,6 @@ async function loadDashboardData() {
 
   const validSeriesKeys = seriesKeys.filter(k => results[k]);
 
-  // Overall Composite Timeline
   const riskScoresTimeline = sortedDates.map(date => {
     let totalScore = 0;
     let validCount = 0;
@@ -193,7 +187,6 @@ async function loadDashboardData() {
   document.getElementById('overall-score-badge').textContent = `Risk: ${currentRiskScore ?? '--'} / 9`;
   document.getElementById('sp500-badge').textContent = `S&P: ${currentSP500 ? currentSP500.toLocaleString() : 'N/A'}`;
 
-  // Update Individual Cards & Render Dual-Axis Charts
   seriesKeys.forEach(key => {
     const valElem = document.getElementById(`${key.toLowerCase()}-val`);
     const scoreBadge = document.getElementById(`${key.toLowerCase()}-score-badge`);
@@ -218,7 +211,6 @@ async function loadDashboardData() {
       else scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-emerald-950 text-emerald-400 border-emerald-800';
     }
 
-    // Extract raw metrics and map corresponding discrete risk scores
     const rawHistory = sortedDates.map(d => dataMaps[key].get(d) ?? null);
     const scoreHistory = sortedDates.map(d => {
       const rawVal = dataMaps[key].get(d);
@@ -241,7 +233,6 @@ async function loadDashboardData() {
   }
 }
 
-/* Dual-Axis Header Chart */
 function renderCombinedChart(dates, riskScores, sp500Values) {
   const ctx = document.getElementById('combinedChart').getContext('2d');
   if (chartInstances['combinedChart']) {
@@ -312,7 +303,6 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
   });
 }
 
-/* Card Chart: Overlaying Stepped Risk Score over Raw Metric */
 function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
