@@ -201,31 +201,47 @@
         ];
 
         // CORS-wrapped fetcher
-        async function fetchFredSeriesCSV(seriesId) {
-            const rawUrl = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
-            // Use corsproxy.io wrapper to bypass browser CORS restrictions
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
+async function fetchFredSeriesCSV(seriesId) {
+    const rawUrl = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
+    
+    // Multiple backup proxy endpoints
+    const proxyUrls = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`,
+        `https://thingproxy.freeboard.io/fetch/${rawUrl}`
+    ];
+
+    for (const proxyUrl of proxyUrls) {
+        try {
+            const response = await fetch(proxyUrl);
+            if (!response.ok) continue;
             
-            try {
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-                const text = await response.text();
-                
-                const rows = text.trim().split('\n').slice(1);
-                const parsed = {};
-                
-                rows.forEach(row => {
-                    const [date, val] = row.split(',');
-                    if (val && val !== '.' && !isNaN(parseFloat(val))) {
-                        parsed[date] = parseFloat(val);
-                    }
-                });
-                return parsed;
-            } catch (err) {
-                console.warn(`Live FRED fetch failed for ${seriesId} via proxy. Falling back to offline dataset.`, err);
-                return null;
+            const text = await response.text();
+            // Validate that we received actual CSV content and not an error HTML page
+            if (!text || text.startsWith('<!DOCTYPE') || text.startsWith('<html')) continue;
+
+            const rows = text.trim().split('\n').slice(1);
+            const parsed = {};
+            
+            rows.forEach(row => {
+                const [date, val] = row.split(',');
+                if (val && val !== '.' && !isNaN(parseFloat(val))) {
+                    parsed[date] = parseFloat(val);
+                }
+            });
+
+            if (Object.keys(parsed).length > 0) {
+                return parsed; // Successfully fetched and parsed live data
             }
+        } catch (err) {
+            console.warn(`Proxy ${proxyUrl} failed, trying next...`);
         }
+    }
+
+    console.warn(`All proxies failed for ${seriesId}. Using offline fallback.`);
+    return null;
+}
+
 
         async function fetchAllData() {
             const btn = document.getElementById('btn-refresh');
