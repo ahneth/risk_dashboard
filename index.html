@@ -10,16 +10,16 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* Explicit container heights to prevent Chart.js mobile canvas collapse */
+    /* Fixed container heights to prevent Chart.js canvas collapse on mobile browsers */
     .card-chart-container {
       position: relative;
       width: 100%;
-      height: 160px;
+      height: 140px;
     }
     .header-chart-container {
       position: relative;
       width: 100%;
-      height: 280px;
+      height: 260px;
     }
   </style>
 </head>
@@ -56,7 +56,8 @@
 
     <!-- Main Header Combined Chart -->
     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-      <h2 class="text-sm font-semibold text-slate-300 mb-3">Systemic Risk Overview (S&P 500 vs VIX)</h2>
+      <h2 class="text-sm font-semibold text-slate-300 mb-1">Systemic Risk Overview (S&P 500 vs VIX)</h2>
+      <p class="text-xs text-slate-400 mb-3">Compares stock market performance against equity market volatility and fear.</p>
       <div class="header-chart-container">
         <canvas id="combinedChart"></canvas>
       </div>
@@ -67,12 +68,14 @@
 
       <!-- VIX -->
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-        <div>
+        <div class="mb-3">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">VIX Volatility</h3>
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">VIX Volatility</h3>
             <span id="vix-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <div id="vix-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
+          <div id="vix-val" class="text-xl font-bold text-slate-100">--</div>
+          <p class="text-xs text-slate-400 mt-1">CBOE 30-day expected market volatility (Wall Street's "Fear Gauge").</p>
+          <p class="text-[11px] text-amber-400/90 mt-1 font-mono">High Risk: &ge; 25.0 (Extreme volatility & market liquidation risk)</p>
         </div>
         <div class="card-chart-container">
           <canvas id="vixChart"></canvas>
@@ -81,12 +84,14 @@
 
       <!-- Yield Curve -->
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-        <div>
+        <div class="mb-3">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">10Y-2Y Yield Curve</h3>
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">10Y-2Y Yield Curve</h3>
             <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <div id="yield_curve-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
+          <div id="yield_curve-val" class="text-xl font-bold text-slate-100">--</div>
+          <p class="text-xs text-slate-400 mt-1">Spread between 10-Year and 2-Year US Treasury bond yields.</p>
+          <p class="text-[11px] text-amber-400/90 mt-1 font-mono">High Risk: &lt; -0.20% (Inversion historically precedes recession)</p>
         </div>
         <div class="card-chart-container">
           <canvas id="yield_curveChart"></canvas>
@@ -95,12 +100,14 @@
 
       <!-- High Yield Credit Spread -->
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-        <div>
+        <div class="mb-3">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Credit Spread (HY)</h3>
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Credit Spread (HY)</h3>
             <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <div id="credit_spread-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
+          <div id="credit_spread-val" class="text-xl font-bold text-slate-100">--</div>
+          <p class="text-xs text-slate-400 mt-1">Option-adjusted spread of junk bonds over risk-free Treasuries.</p>
+          <p class="text-[11px] text-amber-400/90 mt-1 font-mono">High Risk: &ge; 5.0% (Severe corporate default & lending strain)</p>
         </div>
         <div class="card-chart-container">
           <canvas id="credit_spreadChart"></canvas>
@@ -109,12 +116,14 @@
 
       <!-- Sahm Rule -->
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-        <div>
+        <div class="mb-3">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sahm Recession Rule</h3>
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Sahm Recession Rule</h3>
             <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <div id="sahm_rule-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
+          <div id="sahm_rule-val" class="text-xl font-bold text-slate-100">--</div>
+          <p class="text-xs text-slate-400 mt-1">Measures unemployment rate momentum (3-mo avg vs 12-mo low).</p>
+          <p class="text-[11px] text-amber-400/90 mt-1 font-mono">High Risk: &ge; 0.50% (Triggers early-stage macroeconomic recession signal)</p>
         </div>
         <div class="card-chart-container">
           <canvas id="sahm_ruleChart"></canvas>
@@ -123,12 +132,14 @@
 
       <!-- NFCI -->
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-        <div>
+        <div class="mb-3">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chi Fed Fin Conditions (NFCI)</h3>
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Chi Fed Fin Conditions (NFCI)</h3>
             <span id="nfci-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <div id="nfci-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
+          <div id="nfci-val" class="text-xl font-bold text-slate-100">--</div>
+          <p class="text-xs text-slate-400 mt-1">Aggregate measure of US financial market risk, credit, and leverage.</p>
+          <p class="text-[11px] text-amber-400/90 mt-1 font-mono">High Risk: &ge; 0.20 (Financial conditions tighter than historical avg)</p>
         </div>
         <div class="card-chart-container">
           <canvas id="nfciChart"></canvas>
@@ -137,12 +148,14 @@
 
       <!-- STLFSI -->
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-        <div>
+        <div class="mb-3">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">St. Louis Fin Stress (STLFSI)</h3>
+            <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">St. Louis Fin Stress (STLFSI)</h3>
             <span id="stlfsi-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">--</span>
           </div>
-          <div id="stlfsi-val" class="text-xl font-bold text-slate-100 mb-2">--</div>
+          <div id="stlfsi-val" class="text-xl font-bold text-slate-100">--</div>
+          <p class="text-xs text-slate-400 mt-1">Combines 18 market variables (yield spreads, interest rates) for stress.</p>
+          <p class="text-[11px] text-amber-400/90 mt-1 font-mono">High Risk: &ge; 0.50 (Financial market stress significantly above normal)</p>
         </div>
         <div class="card-chart-container">
           <canvas id="stlfsiChart"></canvas>
@@ -168,7 +181,7 @@
     </div>
   </div>
 
-  <!-- Standard Vanilla Application Engine (No ES Modules) -->
-  <script src="js/app.js"></script>
+  <!-- ES Module Application Script -->
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
