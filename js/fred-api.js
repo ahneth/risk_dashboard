@@ -1,51 +1,39 @@
-// js/fred-api.js
-import { FRED_CONFIG } from './config.js';
+export function getLatestValidPoint(observations) {
+  if (!Array.isArray(observations)) return null;
 
-export async function fetchMarkerHistory(key, seriesId) {
-  const apiKey = (FRED_CONFIG.API_KEY || '').trim();
-  if (!apiKey) {
-    throw new Error('Missing FRED API key');
-  }
-
-  // Bound query to last 2 years for fast lightweight payloads
-  const startDate = new Date();
-  startDate.setFullYear(startDate.getFullYear() - 2);
-  const startStr = startDate.toISOString().split('T')[0];
-
-  const targetUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=asc&observation_start=${startStr}`;
-
-  const proxyUrls = [
-    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
-  ];
-
-  for (const proxyUrl of proxyUrls) {
-    try {
-      const res = await fetch(proxyUrl);
-      if (!res.ok) continue;
-
-      const text = await res.text();
-      // Guard against HTML error pages from proxies
-      if (!text.trim().startsWith('{')) {
-        console.warn(`[Proxy Guard] Non-JSON payload returned for ${seriesId}`);
-        continue;
-      }
-
-      const data = JSON.parse(text);
-
-      if (data.error_code || data.error_message) {
-        throw new Error(`FRED API Error: ${data.error_message}`);
-      }
-
-      if (data.observations && Array.isArray(data.observations)) {
-        return data.observations
-          .map(obs => ({ date: obs.date, value: parseFloat(obs.value) }))
-          .filter(obs => !isNaN(obs.value));
-      }
-    } catch (e) {
-      console.warn(`Proxy attempt failed for ${seriesId}:`, e.message);
+  for (let i = observations.length - 1; i >= 0; i--) {
+    const rawVal = observations[i]?.value;
+    if (rawVal !== undefined && rawVal !== null && rawVal !== '.' && !isNaN(parseFloat(rawVal))) {
+      return {
+        value: parseFloat(rawVal),
+        date: observations[i].date
+      };
     }
   }
+  return null;
+}
 
-  throw new Error(`Unable to load series data for ${seriesId}`);
+export function cleanSeriesData(observations) {
+  if (!Array.isArray(observations)) return [];
+
+  return observations
+    .filter(obs => obs.value !== '.' && obs.value !== null && obs.value !== undefined)
+    .map(obs => ({
+      x: obs.date,
+      y: parseFloat(obs.value)
+    }))
+    .filter(point => !isNaN(point.y));
+}
+
+export async function fetchFredSeries(seriesId, apiKey) {
+  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fredUrl)}`;
+
+  const response = await fetch(proxyUrl);
+  if (!response.ok) {
+    throw new Error(`FRED API fetch failed (${response.status}) for ${seriesId}`);
+  }
+
+  const data = await response.json();
+  return data.observations || [];
 }
