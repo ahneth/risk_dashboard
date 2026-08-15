@@ -109,13 +109,12 @@ function computeRiskScore(key, value) {
       return 1;
 
     case 'STLFSI':
-      // St. Louis Fed Financial Stress Index (0.0 = Average Stress)
-      if (value >= 1.50) return 9;   // Critical financial stress
-      if (value >= 1.00) return 8;   // High market stress
-      if (value >= 0.50) return 6;   // Moderate stress
-      if (value >= 0.00) return 4;   // Average stress level
-      if (value >= -0.50) return 2;  // Low stress / calm market
-      return 1;                      // Very low stress
+      if (value >= 1.50) return 9;
+      if (value >= 1.00) return 8;
+      if (value >= 0.50) return 6;
+      if (value >= 0.00) return 4;
+      if (value >= -0.50) return 2;
+      return 1;
 
     default:
       return 0;
@@ -126,27 +125,24 @@ async function loadDashboardData() {
   updateBanner('Connecting to FRED API and pulling market series...', 'info');
 
   const seriesKeys = Object.keys(FRED_CONFIG.SERIES);
-  const fetchPromises = [
-    ...seriesKeys.map(key => fetchMarkerHistory(key, FRED_CONFIG.SERIES[key]).then(data => ({ key, data }))),
-    fetchMarkerHistory('SP500', FRED_CONFIG.BENCHMARK).then(data => ({ key: 'SP500', data }))
-  ];
+  const allTargets = [...seriesKeys.map(k => ({ key: k, id: FRED_CONFIG.SERIES[k] })), { key: 'SP500', id: FRED_CONFIG.BENCHMARK }];
 
-  const settledResults = await Promise.allSettled(fetchPromises);
   const results = {};
   const failedKeys = [];
 
-  settledResults.forEach((res, idx) => {
-    if (res.status === 'fulfilled') {
-      results[res.value.key] = res.value.data;
-    } else {
-      const targetKey = idx < seriesKeys.length ? seriesKeys[idx] : 'SP500';
-      failedKeys.push(targetKey);
-      console.error(`[API Error] ${targetKey}:`, res.reason);
+  // Sequential fetch prevents public CORS proxy rate limiting
+  for (const item of allTargets) {
+    try {
+      const data = await fetchMarkerHistory(item.key, item.id);
+      results[item.key] = data;
+    } catch (err) {
+      failedKeys.push(item.key);
+      console.error(`[API Error] ${item.key} (${item.id}):`, err);
     }
-  });
+  }
 
   if (Object.keys(results).length === 0) {
-    updateBanner('API Query Failed: All series requests returned errors.', 'error');
+    updateBanner('API Query Failed: All series requests returned errors. Check FRED Key in settings.', 'error');
     return;
   }
 
@@ -223,7 +219,7 @@ async function loadDashboardData() {
   renderCombinedChart(sortedDates, riskScoresTimeline, sp500Timeline);
 
   if (failedKeys.length > 0) {
-    updateBanner(`Partial API Failure: Missing data for [${failedKeys.join(', ')}]`, 'warning');
+    updateBanner(`Partial Data: Missing [${failedKeys.join(', ')}]`, 'warning');
   } else if (currentRiskScore >= 7) {
     updateBanner(`CRITICAL MACRO RISK DETECTED (Composite Score: ${currentRiskScore}/9)`, 'error');
   } else if (currentRiskScore >= 4) {
