@@ -56,7 +56,7 @@ async function loadDashboardData() {
 
     const cleanData = cleanSeriesData(obs);
 
-    // Continuous 0.0 - 9.0 risk score trendline calculated via risk-engine.js
+    // Continuous 0.0 - 9.0 risk score trendline mapped directly to score0to9
     const riskTrend = cleanData.map(pt => ({
       x: pt.x,
       y: evaluatePointRisk(id, pt.y).score0to9
