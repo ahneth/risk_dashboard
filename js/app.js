@@ -1,5 +1,6 @@
 /**
  * Macro Systemic Risk Dashboard Engine
+ * Vanilla JavaScript implementation (compatible with Android/mobile browser protocols).
  */
 
 const charts = {};
@@ -26,7 +27,7 @@ const RISK_THRESHOLDS = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Set global Chart.js defaults to strip marker dots
+  // Global Chart.js defaults: removes marker dots while keeping hover indicators
   if (typeof Chart !== 'undefined') {
     Chart.defaults.elements.point.radius = 0;
     Chart.defaults.elements.point.hoverRadius = 4;
@@ -49,8 +50,8 @@ function initApp() {
 }
 
 /**
- * Searches backward to find the newest valid numeric observation.
- * Prevents lower-frequency indicators (weekly/monthly) from showing N/A.
+ * Searches backward from the latest array element to locate the newest non-null valid observation.
+ * Displays individual dates for weekly/monthly lagging indicators.
  */
 function getLatestValidPoint(observations) {
   if (!Array.isArray(observations)) return null;
@@ -68,7 +69,7 @@ function getLatestValidPoint(observations) {
 }
 
 /**
- * Sanitizes observations for Chart.js line rendering
+ * Filters out missing/holiday values ('.') and formats clean coordinates for Chart.js
  */
 function cleanSeriesData(observations) {
   if (!Array.isArray(observations)) return [];
@@ -82,12 +83,16 @@ function cleanSeriesData(observations) {
     .filter(point => !isNaN(point.y));
 }
 
+/**
+ * Queries FRED API via CORS proxy to guarantee mobile and browser cross-origin success.
+ */
 async function fetchFredSeries(seriesId) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
-  
-  const response = await fetch(url);
+  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fredUrl)}`;
+
+  const response = await fetch(proxyUrl);
   if (!response.ok) {
-    throw new Error(`FRED API error (${response.status}) for series: ${seriesId}`);
+    throw new Error(`FRED API fetch failed (${response.status}) for ${seriesId}`);
   }
 
   const data = await response.json();
@@ -95,7 +100,7 @@ async function fetchFredSeries(seriesId) {
 }
 
 async function loadDashboardData() {
-  updateBanner('Fetching macroeconomic series from FRED...', 'info');
+  updateBanner('Fetching macroeconomic data from FRED...', 'info');
 
   const seriesData = {};
   const fetchPromises = Object.entries(SERIES_IDS).map(async ([key, seriesId]) => {
@@ -103,7 +108,7 @@ async function loadDashboardData() {
       const obs = await fetchFredSeries(seriesId);
       seriesData[key] = obs;
     } catch (err) {
-      console.error(`Failed to load ${key}:`, err);
+      console.error(`Failed loading ${key}:`, err);
       seriesData[key] = [];
     }
   });
@@ -112,14 +117,14 @@ async function loadDashboardData() {
 
   let totalRiskScore = 0;
   const indicators = ['vix', 'yield_curve', 'credit_spread', 'sahm_rule', 'nfci', 'stlfsi'];
-  
+
   indicators.forEach((id) => {
     const obs = seriesData[id] || [];
     const unit = (id === 'yield_curve' || id === 'credit_spread' || id === 'sahm_rule') ? '%' : '';
-    
+
     const latest = updateCardValue(id, obs, unit);
     let isHigh = false;
-    
+
     if (latest) {
       isHigh = RISK_THRESHOLDS[id] ? RISK_THRESHOLDS[id](latest.value) : false;
       if (isHigh) totalRiskScore += 1.5;
@@ -139,17 +144,17 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
-  // Header Score Badge
+  // Header Systemic Risk Badge
   const scoreDisplay = Math.min(Math.round(totalRiskScore), 9);
   updateOverallScore(scoreDisplay);
 
-  // Combined Header Chart
+  // Render Combined Top Line Chart
   renderCombinedChart(
     cleanSeriesData(seriesData.sp500 || []),
     cleanSeriesData(seriesData.vix || [])
   );
 
-  updateBanner(`Dashboard updated. Active series parsed with individual latest dates.`, 'success');
+  updateBanner('Dashboard updated successfully. All series parsed with individual latest dates.', 'success');
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
@@ -184,16 +189,16 @@ function updateIndicatorBadge(indicatorId, isHighRisk, isMissing = false) {
   if (!badge) return;
 
   if (isMissing) {
-    badge.className = 'text-xs font-bold px-2 py-1 rounded border bg-slate-800 text-slate-500 border-slate-700';
+    badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700';
     badge.textContent = 'Status: N/A';
     return;
   }
 
   if (isHighRisk) {
-    badge.className = 'text-xs font-bold px-2 py-1 rounded border bg-rose-950 text-rose-300 border-rose-800 animate-pulse';
+    badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-rose-950 text-rose-300 border-rose-800 animate-pulse';
     badge.textContent = 'HIGH RISK';
   } else {
-    badge.className = 'text-xs font-bold px-2 py-1 rounded border bg-emerald-950 text-emerald-300 border-emerald-800';
+    badge.className = 'text-xs font-bold px-2 py-0.5 rounded border bg-emerald-950 text-emerald-300 border-emerald-800';
     badge.textContent = 'NORMAL';
   }
 }
@@ -205,11 +210,11 @@ function updateOverallScore(score) {
   badge.textContent = `Risk: ${score} / 9`;
 
   if (score >= 6) {
-    badge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-800';
+    badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-800';
   } else if (score >= 3) {
-    badge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800';
+    badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800';
   } else {
-    badge.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800';
+    badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800';
   }
 }
 
@@ -218,7 +223,7 @@ function updateBanner(message, type = 'info') {
   if (!banner) return;
 
   banner.textContent = message;
-  const baseStyles = 'status-banner border p-3 rounded-lg text-sm font-medium transition-all ';
+  const baseStyles = 'border p-3 rounded-lg text-sm font-medium transition-all ';
 
   if (type === 'danger') banner.className = baseStyles + 'bg-rose-950/60 text-rose-200 border-rose-800';
   else if (type === 'warning') banner.className = baseStyles + 'bg-amber-950/60 text-amber-200 border-amber-800';
@@ -226,7 +231,7 @@ function updateBanner(message, type = 'info') {
   else banner.className = baseStyles + 'bg-slate-900 text-slate-400 border-slate-800';
 }
 
-/* Rendering Charts without Marker Dots */
+/* Chart Rendering Engine */
 
 function renderCardChart(canvasId, dataPoints, strokeColor = '#38bdf8') {
   const canvas = document.getElementById(canvasId);
@@ -246,8 +251,8 @@ function renderCardChart(canvasId, dataPoints, strokeColor = '#38bdf8') {
         borderWidth: 1.5,
         fill: false,
         tension: 0.2,
-        pointRadius: 0,       // Removes line markers
-        pointHoverRadius: 4   // Shows point only when hovering
+        pointRadius: 0,
+        pointHoverRadius: 4
       }]
     },
     options: {
@@ -348,6 +353,10 @@ function setupModalEvents() {
   const btnChangeKey = document.getElementById('btn-change-key');
   const btnSaveKey = document.getElementById('btn-save-key');
   const keyInput = document.getElementById('modal-key-input');
+
+  if (keyInput && apiKey) {
+    keyInput.value = apiKey;
+  }
 
   if (btnChangeKey) {
     btnChangeKey.addEventListener('click', () => showKeyModal(true));
