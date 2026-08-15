@@ -1,7 +1,7 @@
 import { SERIES_IDS } from './config.js';
 import { getLatestValidPoint, cleanSeriesData, fetchFredSeries } from './fred-api.js';
 import { initChartDefaults, renderCardChart, renderCombinedChart } from './charts.js';
-import { evaluatePointRisk, calculateAggregateRiskScore } from './risk-engine.js';
+import { evaluatePointRisk, calculateAggregateRiskScore, INDICATOR_METRICS } from './risk-engine.js';
 
 let apiKey = localStorage.getItem('fred_api_key') || '';
 
@@ -39,7 +39,7 @@ async function loadDashboardData() {
   await Promise.all(fetchPromises);
 
   const latestValues = {};
-  const indicators = ['vix', 'yield_curve', 'credit_spread', 'sahm_rule', 'nfci', 'stlfsi'];
+  const indicators = Object.keys(INDICATOR_METRICS);
 
   indicators.forEach((id) => {
     const obs = seriesData[id] || [];
@@ -56,7 +56,6 @@ async function loadDashboardData() {
 
     const cleanData = cleanSeriesData(obs);
 
-    // Continuous 0.0 - 9.0 risk score trendline mapped directly to score0to9
     const riskTrend = cleanData.map(pt => ({
       x: pt.x,
       y: evaluatePointRisk(id, pt.y).score0to9
@@ -66,7 +65,7 @@ async function loadDashboardData() {
     renderCardChart(`${id}Chart`, cleanData, riskTrend, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
   });
 
-  // Calculate weighted total risk score out of 9.0
+  // Calculate weighted total risk score out of 9.0 for current state
   const totalScore = calculateAggregateRiskScore(latestValues);
   updateOverallScore(totalScore);
 
@@ -76,10 +75,38 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
-  renderCombinedChart(
-    cleanSeriesData(seriesData.sp500 || []),
-    cleanSeriesData(seriesData.vix || [])
-  );
+  // Build historical consolidated risk score timeline mapped by date matching S&P 500 dates
+  const sp500Clean = cleanSeriesData(seriesData.sp500 || []);
+  
+  // Build lookup maps for each indicator's historical values by date
+  const dateValueMaps = {};
+  indicators.forEach(id => {
+    dateValueMaps[id] = {};
+    (seriesData[id] || []).forEach(obs => {
+      if (obs.value !== '.' && !isNaN(parseFloat(obs.value))) {
+        dateValueMaps[id][obs.date] = parseFloat(obs.value);
+      }
+    });
+  });
+
+  const consolidatedRiskHistory = sp500Clean.map(pt => {
+    const dateStr = pt.x;
+    const currentPointValues = {};
+    
+    indicators.forEach(id => {
+      // Fallback to latest available value prior/closest if exact date missing, or check exact map match
+      if (dateValueMaps[id][dateStr] !== undefined) {
+        currentPointValues[id] = dateValueMaps[id][dateStr];
+      }
+    });
+
+    return {
+      x: dateStr,
+      y: calculateAggregateRiskScore(currentPointValues)
+    };
+  });
+
+  renderCombinedChart(sp500Clean, consolidatedRiskHistory);
 
   updateBanner('Dashboard updated successfully.', 'success');
 }
