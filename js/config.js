@@ -7,12 +7,3 @@ export const SERIES_IDS = {
   nfci: 'NFCI',
   stlfsi: 'STLFSI4'
 };
-
-export const RISK_THRESHOLDS = {
-  vix: (val) => val >= 25.0,
-  yield_curve: (val) => val < -0.20,
-  credit_spread: (val) => val >= 5.0,
-  sahm_rule: (val) => val >= 0.50,
-  nfci: (val) => val >= 0.20,
-  stlfsi: (val) => val >= 0.50
-};
