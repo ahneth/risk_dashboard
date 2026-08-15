@@ -9,6 +9,6 @@ export const FRED_CONFIG = {
     CREDIT_SPREAD: 'BAMLH0A0HYM2',
     SAHM_RULE: 'SAHMCURRENT',
     NFCI: 'NFCI',
-    BREADTH: 'RUI'
+    BREADTH: 'WILL5000INDFC' // Changed from restricted 'RUI' to Wilshire 5000
   }
 };
