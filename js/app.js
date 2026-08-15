@@ -109,7 +109,6 @@ function computeRiskScore(key, value) {
       return 1;
 
     case 'BREADTH':
-      // NASDAQ Composite Index evaluation
       if (value < 12000) return 8;
       if (value < 14000) return 6;
       if (value < 16000) return 4;
@@ -186,7 +185,7 @@ async function loadDashboardData() {
   document.getElementById('overall-score-badge').textContent = `Risk: ${currentRiskScore ?? '--'} / 9`;
   document.getElementById('sp500-badge').textContent = `S&P: ${currentSP500 ? currentSP500.toLocaleString() : 'N/A'}`;
 
-  // Update Individual Badges & Render Charts
+  // Update Individual Cards & Render Dual-Axis Charts
   seriesKeys.forEach(key => {
     const valElem = document.getElementById(`${key.toLowerCase()}-val`);
     const scoreBadge = document.getElementById(`${key.toLowerCase()}-score-badge`);
@@ -211,7 +210,7 @@ async function loadDashboardData() {
       else scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-emerald-950 text-emerald-400 border-emerald-800';
     }
 
-    // Generate individual raw value and risk score histories
+    // Extract raw metrics and map corresponding discrete risk scores
     const rawHistory = sortedDates.map(d => dataMaps[key].get(d) ?? null);
     const scoreHistory = sortedDates.map(d => {
       const rawVal = dataMaps[key].get(d);
@@ -234,7 +233,7 @@ async function loadDashboardData() {
   }
 }
 
-/* Dual-Axis Combined Header Chart */
+/* Dual-Axis Header Chart */
 function renderCombinedChart(dates, riskScores, sp500Values) {
   const ctx = document.getElementById('combinedChart').getContext('2d');
   if (chartInstances['combinedChart']) {
@@ -254,7 +253,8 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
           yAxisID: 'yRisk',
           borderWidth: 2,
           tension: 0.2,
-          fill: true
+          fill: true,
+          spanGaps: true
         },
         {
           label: 'S&P 500 Index',
@@ -264,7 +264,8 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
           yAxisID: 'ySP500',
           borderWidth: 2,
           tension: 0.2,
-          fill: false
+          fill: false,
+          spanGaps: true
         }
       ]
     },
@@ -303,7 +304,7 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
   });
 }
 
-/* Individual Indicator Dual-Axis Chart (Risk Score + Raw Metric) */
+/* Card Chart: Overlaying Stepped Risk Score over Raw Metric */
 function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
@@ -322,23 +323,28 @@ function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
           label: 'Risk Score (0–9)',
           data: scoreValues,
           borderColor: '#f43f5e',
-          backgroundColor: 'rgba(244, 63, 94, 0.15)',
+          backgroundColor: 'rgba(244, 63, 94, 0.1)',
           yAxisID: 'yScore',
-          borderWidth: 1.5,
-          tension: 0.2,
-          fill: true,
-          pointRadius: 1
+          borderWidth: 2,
+          stepped: 'middle',
+          spanGaps: true,
+          pointRadius: 2,
+          pointBackgroundColor: '#f43f5e',
+          fill: false,
+          order: 1
         },
         {
           label: `${label} (Raw)`,
           data: rawValues,
-          borderColor: '#818cf8',
-          borderDash: [3, 3],
+          borderColor: '#64748b',
+          borderDash: [2, 2],
           yAxisID: 'yRaw',
           borderWidth: 1.5,
           tension: 0.2,
+          spanGaps: true,
+          pointRadius: 0,
           fill: false,
-          pointRadius: 1
+          order: 2
         }
       ]
     },
@@ -350,7 +356,8 @@ function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
         legend: {
           display: true,
           position: 'top',
-          labels: { color: '#94a3b8', font: { size: 9 }, boxWidth: 12 }
+          align: 'end',
+          labels: { color: '#94a3b8', font: { size: 9 }, boxWidth: 8, padding: 4 }
         }
       },
       scales: {
@@ -364,17 +371,15 @@ function renderSingleChart(canvasId, label, dates, rawValues, scoreValues) {
           position: 'left',
           min: 0,
           max: 9,
-          title: { display: true, text: 'Score', color: '#f43f5e', font: { size: 9 } },
-          grid: { color: '#1e293b' },
-          ticks: { color: '#f43f5e', font: { size: 8 }, stepSize: 3 }
+          grid: { color: 'rgba(244, 63, 94, 0.1)' },
+          ticks: { color: '#f43f5e', font: { size: 9, weight: 'bold' }, stepSize: 3 }
         },
         yRaw: {
           type: 'linear',
           display: true,
           position: 'right',
-          title: { display: true, text: 'Raw', color: '#818cf8', font: { size: 9 } },
           grid: { drawOnChartArea: false },
-          ticks: { color: '#818cf8', font: { size: 8 } }
+          ticks: { color: '#64748b', font: { size: 8 } }
         }
       }
     }
