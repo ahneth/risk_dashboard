@@ -6,27 +6,25 @@ export async function fetchMarkerHistory(key, seriesId) {
     throw new Error(`[FRED API] API key missing for "${key}"`);
   }
 
-  // Intercept and sanitize restricted series IDs automatically
-  const targetSeriesId = (seriesId === 'RUI') ? 'WILL5000INDFC' : seriesId;
-
   const startDate = new Date();
   startDate.setMonth(startDate.getMonth() - 24);
   const startDateStr = startDate.toISOString().split('T')[0];
 
-  let rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${targetSeriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}&frequency=m&aggregation_method=eop`;
+  // Primary end-of-period query
+  let rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}&frequency=m&aggregation_method=eop`;
   let proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
 
   let response = await fetch(proxyUrl);
 
-  // Fallback to unaggregated query if FRED rejects end-of-period parameters
+  // Fallback to unaggregated raw series if end-of-period is rejected
   if (!response.ok) {
-    rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${targetSeriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}`;
+    rawUrl = `${FRED_CONFIG.BASE_URL}?series_id=${seriesId}&api_key=${FRED_CONFIG.API_KEY}&file_type=json&observation_start=${startDateStr}`;
     proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
     response = await fetch(proxyUrl);
   }
 
   if (!response.ok) {
-    throw new Error(`[FRED API] HTTP ${response.status} fetching "${key}" (${targetSeriesId})`);
+    throw new Error(`[FRED API] HTTP ${response.status} fetching "${key}" (${seriesId})`);
   }
 
   const data = await response.json();
