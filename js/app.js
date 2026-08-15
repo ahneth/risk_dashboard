@@ -7,7 +7,6 @@ import { renderTrendChart } from './charts.js';
 document.addEventListener('DOMContentLoaded', () => {
   setupKeyModalEvents();
 
-  // Check if API key exists in localStorage
   if (!FRED_CONFIG.API_KEY) {
     showKeyModal();
   } else {
@@ -35,7 +34,7 @@ function setupKeyModalEvents() {
 
   fallbackBtn?.addEventListener('click', () => {
     hideKeyModal();
-    initializeDashboard(); // Will gracefully use FALLBACK_DATA
+    initializeDashboard();
   });
 
   changeKeyBtn?.addEventListener('click', () => {
@@ -59,9 +58,10 @@ async function initializeDashboard() {
   const seriesEntries = Object.entries(FRED_CONFIG.SERIES);
   const dataset = {};
 
+  // Fetch series using key & seriesId
   for (const [key, seriesId] of seriesEntries) {
     try {
-      const history = await fetchMarkerHistory(seriesId);
+      const history = await fetchMarkerHistory(key, seriesId);
       dataset[key] = Array.isArray(history) && history.length > 0 ? history : [];
     } catch (e) {
       console.error(`Error loading ${key}:`, e);
@@ -69,7 +69,7 @@ async function initializeDashboard() {
     }
   }
 
-  // Render individual indicator cards and charts
+  // Render individual indicator cards and line charts
   Object.keys(FRED_CONFIG.SERIES).forEach((key) => {
     const history = dataset[key] || [];
     const canvasId = `${key.toLowerCase()}Chart`;
@@ -77,14 +77,14 @@ async function initializeDashboard() {
 
     if (history.length > 0) {
       const latestVal = history[history.length - 1].value;
-      if (valElem) valElem.innerText = latestVal;
+      if (valElem) valElem.innerText = typeof latestVal === 'number' ? latestVal.toFixed(2) : latestVal;
       renderTrendChart(canvasId, key, history.slice(-24));
     } else {
       if (valElem) valElem.innerText = "N/A";
     }
   });
 
-  // Calculate composite regime score
+  // Calculate weighted composite score
   const latestValues = {};
   Object.keys(dataset).forEach(k => {
     if (dataset[k].length > 0) {
@@ -95,7 +95,7 @@ async function initializeDashboard() {
   const regimeResult = evaluateRiskRegime(latestValues);
   
   if (banner) {
-    banner.innerText = `MARKET RISK REGIME: ${regimeResult.overallRegime}`;
+    banner.innerText = `MARKET RISK REGIME: ${regimeResult.overallRegime} (WEIGHTED SCORE: ${regimeResult.compositeScore}/100)`;
     banner.className = `status-banner regime-${regimeResult.overallRegime.toLowerCase()}`;
   }
 }
