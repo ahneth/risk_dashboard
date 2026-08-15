@@ -65,7 +65,7 @@ function updateBanner(message, status = 'info') {
   banner.className = `status-banner border ${statusStyles[status] || statusStyles.info}`;
 }
 
-/* Individual Indicator Threshold Scoring (0 to 9 scale) */
+/* Indicator Risk Scoring (0 to 9 scale) */
 function computeRiskScore(key, value) {
   if (value === undefined || value === null || isNaN(value)) return 0;
 
@@ -110,10 +110,10 @@ function computeRiskScore(key, value) {
       return 1;
 
     case 'BREADTH':
-      // Evaluated as index momentum score
-      if (value < 1500) return 8;
-      if (value < 1700) return 6;
-      if (value < 1900) return 4;
+      // Evaluated as index momentum score for Wilshire 5000
+      if (value < 40000) return 8;
+      if (value < 45000) return 6;
+      if (value < 50000) return 4;
       return 2;
 
     default:
@@ -121,105 +121,123 @@ function computeRiskScore(key, value) {
   }
 }
 
-/* Main Data Execution Pipeline */
+/* Main Execution Pipeline */
 async function loadDashboardData() {
   updateBanner('Connecting to FRED API and pulling market series...', 'info');
 
-  try {
-    const seriesKeys = Object.keys(FRED_CONFIG.SERIES);
+  const seriesKeys = Object.keys(FRED_CONFIG.SERIES);
+  const fetchPromises = [
+    ...seriesKeys.map(key => fetchMarkerHistory(key, FRED_CONFIG.SERIES[key]).then(data => ({ key, data }))),
+    fetchMarkerHistory('SP500', FRED_CONFIG.BENCHMARK).then(data => ({ key: 'SP500', data }))
+  ];
 
-    // Fetch all market markers and benchmark in parallel
-    const requests = seriesKeys.map(key =>
-      fetchMarkerHistory(key, FRED_CONFIG.SERIES[key]).then(data => ({ key, data }))
-    );
+  // Settles each request independently without triggering fallback mock data
+  const settledResults = await Promise.allSettled(fetchPromises);
+  const results = {};
+  const failedKeys = [];
 
-    requests.push(
-      fetchMarkerHistory('SP500', FRED_CONFIG.BENCHMARK).then(data => ({ key: 'SP500', data }))
-    );
+  settledResults.forEach((res, idx) => {
+    if (res.status === 'fulfilled') {
+      results[res.value.key] = res.value.data;
+    } else {
+      const targetKey = idx < seriesKeys.length ? seriesKeys[idx] : 'SP500';
+      failedKeys.push(targetKey);
+      console.error(`[API Fail] ${targetKey}:`, res.reason);
+    }
+  });
 
-    const responses = await Promise.all(requests);
-    const results = {};
-    responses.forEach(res => { results[res.key] = res.data; });
+  if (Object.keys(results).length === 0) {
+    updateBanner('API Query Failed: All series requests returned errors.', 'error');
+    return;
+  }
 
-    // Combine date ranges into unified chronological timeline
-    const allDates = new Set();
-    Object.values(results).forEach(series => {
-      series.forEach(obs => allDates.add(obs.date));
-    });
-    const sortedDates = Array.from(allDates).sort();
+  // Aggregate dates from successful API responses
+  const allDates = new Set();
+  Object.values(results).forEach(series => {
+    series.forEach(obs => allDates.add(obs.date));
+  });
+  const sortedDates = Array.from(allDates).sort();
 
-    // Index observations by date string for alignment
-    const dataMaps = {};
-    Object.keys(results).forEach(key => {
-      dataMaps[key] = new Map(results[key].map(obs => [obs.date, obs.value]));
-    });
+  // Index observations by date
+  const dataMaps = {};
+  Object.keys(results).forEach(key => {
+    dataMaps[key] = new Map(results[key].map(obs => [obs.date, obs.value]));
+  });
 
-    // Compute composite risk score for each date in history
-    const riskScoresTimeline = sortedDates.map(date => {
-      let totalScore = 0;
-      let validCount = 0;
+  // Calculate timeline scores for valid API series
+  const validSeriesKeys = seriesKeys.filter(k => results[k]);
+  const riskScoresTimeline = sortedDates.map(date => {
+    let totalScore = 0;
+    let validCount = 0;
 
-      seriesKeys.forEach(k => {
-        const val = dataMaps[k].get(date);
-        if (val !== undefined) {
-          totalScore += computeRiskScore(k, val);
-          validCount++;
-        }
-      });
-
-      return validCount > 0 ? parseFloat((totalScore / validCount).toFixed(1)) : null;
-    });
-
-    const sp500Timeline = sortedDates.map(date => dataMaps['SP500'].get(date) ?? null);
-
-    // Update Latest Stats and Score Cards
-    const latestDate = sortedDates[sortedDates.length - 1];
-    const currentRiskScore = riskScoresTimeline[riskScoresTimeline.length - 1];
-    const currentSP500 = dataMaps['SP500'].get(latestDate);
-
-    document.getElementById('overall-score-badge').textContent = `Risk: ${currentRiskScore ?? '--'} / 9`;
-    document.getElementById('sp500-badge').textContent = `S&P: ${currentSP500 ? currentSP500.toLocaleString() : '--'}`;
-
-    seriesKeys.forEach(key => {
-      const val = dataMaps[key].get(latestDate);
-      const score = computeRiskScore(key, val);
-      const valElem = document.getElementById(`${key.toLowerCase()}-val`);
-      const scoreBadge = document.getElementById(`${key.toLowerCase()}-score-badge`);
-
-      if (valElem) valElem.textContent = val !== undefined ? val.toLocaleString() : 'N/A';
-      if (scoreBadge) {
-        scoreBadge.textContent = `Score: ${score}/9`;
-        if (score >= 7) scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-rose-950 text-rose-400 border-rose-800';
-        else if (score >= 4) scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-amber-950 text-amber-400 border-amber-800';
-        else scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-emerald-950 text-emerald-400 border-emerald-800';
+    validSeriesKeys.forEach(k => {
+      const val = dataMaps[k].get(date);
+      if (val !== undefined) {
+        totalScore += computeRiskScore(k, val);
+        validCount++;
       }
     });
 
-    // Render Charts
-    renderCombinedChart(sortedDates, riskScoresTimeline, sp500Timeline);
+    return validCount > 0 ? parseFloat((totalScore / validCount).toFixed(1)) : null;
+  });
 
-    seriesKeys.forEach(key => {
-      const history = sortedDates.map(d => dataMaps[key].get(d) ?? null);
-      renderSingleChart(`${key.toLowerCase()}Chart`, key, sortedDates, history);
-    });
+  const sp500Timeline = results['SP500'] ? sortedDates.map(date => dataMaps['SP500'].get(date) ?? null) : [];
 
-    // Final Status Banner Trigger
-    if (currentRiskScore >= 7) {
-      updateBanner(`CRITICAL MACRO RISK DETECTED (Composite Score: ${currentRiskScore}/9)`, 'error');
-    } else if (currentRiskScore >= 4) {
-      updateBanner(`ELEVATED MARKET RISK (Composite Score: ${currentRiskScore}/9)`, 'warning');
-    } else {
-      updateBanner(`MACRO SYSTEM CONDITIONS STABLE (Composite Score: ${currentRiskScore}/9)`, 'success');
+  // Update Top Score Cards
+  const latestDate = sortedDates[sortedDates.length - 1];
+  const currentRiskScore = riskScoresTimeline[riskScoresTimeline.length - 1];
+  const currentSP500 = results['SP500'] ? dataMaps['SP500'].get(latestDate) : null;
+
+  document.getElementById('overall-score-badge').textContent = `Risk: ${currentRiskScore ?? '--'} / 9`;
+  document.getElementById('sp500-badge').textContent = `S&P: ${currentSP500 ? currentSP500.toLocaleString() : 'N/A'}`;
+
+  // Update Individual Metric Cards
+  seriesKeys.forEach(key => {
+    const valElem = document.getElementById(`${key.toLowerCase()}-val`);
+    const scoreBadge = document.getElementById(`${key.toLowerCase()}-score-badge`);
+
+    if (!results[key]) {
+      if (valElem) valElem.textContent = 'API ERROR';
+      if (scoreBadge) {
+        scoreBadge.textContent = 'FAILED';
+        scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-rose-950 text-rose-400 border-rose-800';
+      }
+      return;
     }
 
-  } catch (err) {
-    console.error('[Dashboard Error]', err);
-    updateBanner(`API Query Failed: ${err.message}`, 'error');
-    throw err; // Strict execution halt - no fallback render
+    const val = dataMaps[key].get(latestDate);
+    const score = computeRiskScore(key, val);
+
+    if (valElem) valElem.textContent = val !== undefined ? val.toLocaleString() : 'N/A';
+    if (scoreBadge) {
+      scoreBadge.textContent = `Score: ${score}/9`;
+      if (score >= 7) scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-rose-950 text-rose-400 border-rose-800';
+      else if (score >= 4) scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-amber-950 text-amber-400 border-amber-800';
+      else scoreBadge.className = 'text-xs font-bold px-2 py-1 rounded border bg-emerald-950 text-emerald-400 border-emerald-800';
+    }
+  });
+
+  // Render Valid Charts
+  renderCombinedChart(sortedDates, riskScoresTimeline, sp500Timeline);
+
+  validSeriesKeys.forEach(key => {
+    const history = sortedDates.map(d => dataMaps[key].get(d) ?? null);
+    renderSingleChart(`${key.toLowerCase()}Chart`, key, sortedDates, history);
+  });
+
+  // Status Banner Feedback
+  if (failedKeys.length > 0) {
+    updateBanner(`Partial API Failure: Missing data for [${failedKeys.join(', ')}]`, 'warning');
+  } else if (currentRiskScore >= 7) {
+    updateBanner(`CRITICAL MACRO RISK DETECTED (Composite Score: ${currentRiskScore}/9)`, 'error');
+  } else if (currentRiskScore >= 4) {
+    updateBanner(`ELEVATED MARKET RISK (Composite Score: ${currentRiskScore}/9)`, 'warning');
+  } else {
+    updateBanner(`MACRO SYSTEM CONDITIONS STABLE (Composite Score: ${currentRiskScore}/9)`, 'success');
   }
 }
 
-/* Dual-Axis Combined Chart (Risk Score vs S&P 500) */
+/* Dual-Axis Combined Chart */
 function renderCombinedChart(dates, riskScores, sp500Values) {
   const ctx = document.getElementById('combinedChart').getContext('2d');
   if (chartInstances['combinedChart']) {
@@ -288,7 +306,7 @@ function renderCombinedChart(dates, riskScores, sp500Values) {
   });
 }
 
-/* Single Indicator Chart Component */
+/* Individual Indicator Chart */
 function renderSingleChart(canvasId, label, dates, values) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
