@@ -8,7 +8,7 @@ export function initChartDefaults() {
   }
 }
 
-export function renderCardChart(canvasId, dataPoints, strokeColor = '#38bdf8') {
+export function renderCardChart(canvasId, dataPoints, riskPoints, strokeColor = '#38bdf8') {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
@@ -20,26 +20,57 @@ export function renderCardChart(canvasId, dataPoints, strokeColor = '#38bdf8') {
     type: 'line',
     data: {
       labels: dataPoints.map(p => p.x),
-      datasets: [{
-        data: dataPoints.map(p => p.y),
-        borderColor: strokeColor,
-        borderWidth: 1.5,
-        fill: false,
-        tension: 0.2,
-        pointRadius: 0,
-        pointHoverRadius: 4
-      }]
+      datasets: [
+        {
+          label: 'Indicator Value',
+          data: dataPoints.map(p => p.y),
+          borderColor: strokeColor,
+          borderWidth: 1.5,
+          fill: false,
+          tension: 0.2,
+          pointRadius: 0,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Risk Score (0 or 1.5)',
+          data: riskPoints.map(p => p.y),
+          borderColor: '#f43f5e',
+          borderWidth: 1,
+          borderDash: [3, 3], // Dashed line for clarity
+          fill: false,
+          stepped: true, // Step line to show clean 0.0 -> 1.5 threshold transitions
+          pointRadius: 0,
+          yAxisID: 'y_score'
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
       scales: {
         x: { display: false },
         y: {
+          type: 'linear',
           display: true,
+          position: 'left',
           grid: { color: 'rgba(51, 65, 85, 0.3)' },
           ticks: { color: '#64748b', font: { size: 9 }, maxTicksLimit: 4 }
+        },
+        y_score: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          min: 0,
+          max: 2,
+          grid: { drawOnChartArea: false },
+          ticks: {
+            color: '#f43f5e',
+            font: { size: 8 },
+            stepSize: 1.5,
+            callback: (val) => val === 1.5 ? '1.5pt' : (val === 0 ? '0pt' : '')
+          }
         }
       }
     }
