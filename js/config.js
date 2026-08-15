@@ -1,13 +1,18 @@
-// js/config.js
-export const FRED_CONFIG = {
-  API_KEY: localStorage.getItem('FRED_API_KEY') || '',
-  SERIES: {
-    VIX: 'VIXCLS',
-    YIELD_CURVE: 'T10Y2Y',
-    CREDIT_SPREAD: 'BAMLH0A0HYM2',
-    SAHM_RULE: 'SAHMREALTIME',
-    NFCI: 'ANFCI',
-    STLFSI: 'STLFSI4' // Replaces BREADTH
-  },
-  BENCHMARK: 'SP500'
+export const SERIES_IDS = {
+  sp500: 'SP500',
+  vix: 'VIXCLS',
+  yield_curve: 'T10Y2Y',
+  credit_spread: 'BAMLH0A0HYM2',
+  sahm_rule: 'SAHMREALTIME',
+  nfci: 'NFCI',
+  stlfsi: 'STLFSI4'
+};
+
+export const RISK_THRESHOLDS = {
+  vix: (val) => val >= 25.0,
+  yield_curve: (val) => val < -0.20,
+  credit_spread: (val) => val >= 5.0,
+  sahm_rule: (val) => val >= 0.50,
+  nfci: (val) => val >= 0.20,
+  stlfsi: (val) => val >= 0.50
 };
