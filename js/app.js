@@ -4,14 +4,13 @@ import { fetchMarkerHistory } from './fred-api.js';
 
 const chartInstances = {};
 
-// Configure global Chart.js defaults to hide point markers across all charts
-if (window.Chart) {
-  Chart.defaults.elements.point.radius = 0;
-  Chart.defaults.elements.point.hoverRadius = 4;
-  Chart.defaults.elements.point.hitRadius = 10;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
+  // Set Chart.js global defaults inside DOMContentLoaded to ensure library is loaded
+  if (window.Chart) {
+    Chart.defaults.elements.point.radius = 0;
+    Chart.defaults.elements.point.hoverRadius = 4;
+    Chart.defaults.elements.point.hitRadius = 10;
+  }
   initApp();
 });
 
@@ -136,16 +135,18 @@ function computeRiskScore(key, value) {
 }
 
 /**
- * Searches backward to find the latest non-null, valid numeric observation.
- * Solves issue where weekly/monthly FRED series return N/A on daily timelines.
+ * Searches backward to find the latest valid numeric observation.
  */
 function getLatestValidPoint(observations) {
   if (!Array.isArray(observations) || observations.length === 0) return null;
 
   for (let i = observations.length - 1; i >= 0; i--) {
     const obs = observations[i];
-    if (obs && obs.value !== null && obs.value !== undefined && !isNaN(obs.value)) {
-      return obs;
+    if (obs && obs.value !== null && obs.value !== undefined && obs.value !== '.') {
+      const num = parseFloat(obs.value);
+      if (!isNaN(num)) {
+        return { date: obs.date, value: num };
+      }
     }
   }
   return null;
@@ -178,21 +179,34 @@ async function loadDashboardData() {
     return;
   }
 
-  // Create unified timeline
+  // Generate sorted global date timeline
   const allDates = new Set();
   Object.values(results).forEach(series => {
-    series.forEach(obs => allDates.add(obs.date));
+    if (Array.isArray(series)) {
+      series.forEach(obs => allDates.add(obs.date));
+    }
   });
   const sortedDates = Array.from(allDates).sort();
 
+  // Create sanitized maps: convert FRED string values into pure Numbers or null
   const dataMaps = {};
   Object.keys(results).forEach(key => {
-    dataMaps[key] = new Map(results[key].map(obs => [obs.date, obs.value]));
+    dataMaps[key] = new Map();
+    if (Array.isArray(results[key])) {
+      results[key].forEach(obs => {
+        if (obs.value === '.' || obs.value === null || obs.value === undefined) {
+          dataMaps[key].set(obs.date, null);
+        } else {
+          const num = parseFloat(obs.value);
+          dataMaps[key].set(obs.date, isNaN(num) ? null : num);
+        }
+      });
+    }
   });
 
   const validSeriesKeys = seriesKeys.filter(k => results[k]);
 
-  // Propagate forward values for smooth composite risk tracking
+  // Compute overall timeline risk score using forward-filled non-null values
   const lastKnownValues = {};
   const riskScoresTimeline = sortedDates.map(date => {
     let totalScore = 0;
@@ -200,7 +214,7 @@ async function loadDashboardData() {
 
     validSeriesKeys.forEach(k => {
       const currentVal = dataMaps[k].get(date);
-      if (currentVal !== undefined && currentVal !== null) {
+      if (currentVal !== null && currentVal !== undefined) {
         lastKnownValues[k] = currentVal;
       }
 
@@ -215,7 +229,7 @@ async function loadDashboardData() {
 
   const sp500Timeline = results['SP500'] ? sortedDates.map(date => dataMaps['SP500'].get(date) ?? null) : [];
 
-  // Render Header Badges
+  // Update Header Badges
   const sp500Latest = getLatestValidPoint(results['SP500'] || []);
   const currentRiskScore = riskScoresTimeline[riskScoresTimeline.length - 1];
 
@@ -227,7 +241,7 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest ? sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : 'N/A'}`;
   }
 
-  // Render Indicator Cards with Specific Dates
+  // Populate Individual Indicator Cards & Render Charts
   seriesKeys.forEach(key => {
     const valElem = document.getElementById(`${key.toLowerCase()}-val`);
     const cardScoreBadge = document.getElementById(`${key.toLowerCase()}-score-badge`);
@@ -268,10 +282,11 @@ async function loadDashboardData() {
       valElem.textContent = 'N/A';
     }
 
+    // Prepare numerical arrays for Chart.js
     const rawHistory = sortedDates.map(d => dataMaps[key].get(d) ?? null);
     const scoreHistory = sortedDates.map(d => {
       const rawVal = dataMaps[key].get(d);
-      return rawVal !== undefined && rawVal !== null ? computeRiskScore(key, rawVal) : null;
+      return (rawVal !== null && rawVal !== undefined) ? computeRiskScore(key, rawVal) : null;
     });
 
     renderSingleChart(`${key.toLowerCase()}Chart`, key, sortedDates, rawHistory, scoreHistory);
