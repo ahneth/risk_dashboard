@@ -59,6 +59,60 @@ export function renderOverallChart(canvasId, compositeHistory) {
 }
 
 /**
+ * Renders the 24-Month S&P 500 Benchmark Comparison Chart.
+ */
+export function renderBenchmarkChart(canvasId, dataPoints) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+
+  const labels = dataPoints.map(p => p.date);
+  const values = dataPoints.map(p => p.value);
+
+  chartInstances[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'S&P 500 Index',
+        data: values,
+        borderColor: '#38bdf8', // Sky blue
+        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+        fill: true,
+        borderWidth: 2.5,
+        tension: 0.2,
+        pointRadius: 2,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `S&P 500: ${ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: {
+            color: '#38bdf8',
+            callback: (val) => val.toLocaleString('en-US')
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
  * Renders individual factor charts with dual Y-axes (Raw Metric + 0-9 Risk Score).
  */
 export function renderMarkerChart(canvasId, title, dataPoints) {
@@ -82,7 +136,7 @@ export function renderMarkerChart(canvasId, title, dataPoints) {
         {
           label: 'Raw Value',
           data: rawValues,
-          borderColor: '#6366f1', // Indigo for raw metric
+          borderColor: '#6366f1',
           borderWidth: 2,
           tension: 0.2,
           pointRadius: 0,
@@ -91,7 +145,7 @@ export function renderMarkerChart(canvasId, title, dataPoints) {
         {
           label: 'Risk Score (0-9)',
           data: riskScores,
-          borderColor: colorMeta.hex, // Green, Amber, or Red
+          borderColor: colorMeta.hex,
           borderDash: [4, 4],
           borderWidth: 2,
           stepped: true,
