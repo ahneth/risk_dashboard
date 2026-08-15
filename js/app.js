@@ -78,7 +78,6 @@ async function loadDashboardData() {
   // Build historical consolidated risk score timeline mapped by date matching S&P 500 dates
   const sp500Clean = cleanSeriesData(seriesData.sp500 || []);
   
-  // Build lookup maps for each indicator's historical values by date
   const dateValueMaps = {};
   indicators.forEach(id => {
     dateValueMaps[id] = {};
@@ -94,7 +93,6 @@ async function loadDashboardData() {
     const currentPointValues = {};
     
     indicators.forEach(id => {
-      // Fallback to latest available value prior/closest if exact date missing, or check exact map match
       if (dateValueMaps[id][dateStr] !== undefined) {
         currentPointValues[id] = dateValueMaps[id][dateStr];
       }
