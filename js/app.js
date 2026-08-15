@@ -2,7 +2,7 @@
 import { FRED_CONFIG } from './config.js';
 import { fetchMarkerHistory } from './fred-api.js';
 import { evaluateRiskRegime, calculateFactorRiskScore, getRiskColorMeta } from './risk-engine.js';
-import { renderOverallChart, renderMarkerChart } from './charts.js';
+import { renderOverallChart, renderBenchmarkChart, renderMarkerChart } from './charts.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   setupKeyModalEvents();
@@ -52,6 +52,15 @@ async function initializeDashboard() {
   const banner = document.getElementById('risk-banner');
   if (banner) banner.innerText = "Fetching 24 Months Market Data...";
 
+  // 1. Fetch Benchmark Data (S&P 500)
+  let sp500History = [];
+  try {
+    sp500History = await fetchMarkerHistory('SP500', FRED_CONFIG.BENCHMARK);
+  } catch (e) {
+    console.error('Error loading S&P 500:', e);
+  }
+
+  // 2. Fetch Risk Factor Data
   const seriesEntries = Object.entries(FRED_CONFIG.SERIES);
   const dataset = {};
 
@@ -92,12 +101,27 @@ async function initializeDashboard() {
     overallScoreElem.className = `text-lg font-black px-3 py-1 rounded-full border ${meta.badgeClass}`;
   }
 
-  // 1. Render Overall Risk Score Chart (Full 24 months)
+  // Update S&P 500 Header Badge
+  const sp500Badge = document.getElementById('sp500-badge');
+  if (sp500Badge && sp500History.length > 0) {
+    const latestSpVal = sp500History[sp500History.length - 1].value;
+    const firstSpVal = sp500History[0].value;
+    const pctChange = (((latestSpVal - firstSpVal) / firstSpVal) * 100).toFixed(1);
+    const sign = pctChange >= 0 ? '+' : '';
+    sp500Badge.innerText = `${latestSpVal.toLocaleString('en-US', { maximumFractionDigits: 0 })} (${sign}${pctChange}% 24M)`;
+  }
+
+  // CHART 1: Render Overall Risk Score Chart
   if (regimeResult.compositeHistory.length > 0) {
     renderOverallChart('overallChart', regimeResult.compositeHistory);
   }
 
-  // 2. Render Individual Marker Charts (Full 24 months)
+  // CHART 2: Render S&P 500 Benchmark Chart
+  if (sp500History.length > 0) {
+    renderBenchmarkChart('sp500Chart', sp500History);
+  }
+
+  // CHART GRID: Render Individual Marker Charts
   Object.keys(FRED_CONFIG.SERIES).forEach((key) => {
     const history = dataset[key] || [];
     const canvasId = `${key.toLowerCase()}Chart`;
