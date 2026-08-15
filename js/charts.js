@@ -64,7 +64,6 @@ export function renderCardChart(canvasId, dataPoints, riskPoints, strokeColor = 
           position: 'right',
           min: 0,
           max: 9,
-          beginAtZero: true,
           grid: { drawOnChartArea: false },
           ticks: {
             color: '#f43f5e',
