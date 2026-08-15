@@ -110,15 +110,17 @@ function computeRiskScore(key, value) {
       if (value >= -0.50) return 2;  // Standard loose conditions
       return 1;                      // Extremely loose (-0.50+)
 
-    case 'BREADTH':
-      // If tracking Wilshire 5000 Total Market (WILL5000PR / WILL5000IND)
-      // Adjust thresholds to current historical baseline levels
-      if (value < 35000) return 9;   // Major market drawdown
-      if (value < 40000) return 8;   // Significant pullback
-      if (value < 45000) return 6;   // Moderate correction
-      if (value < 50000) return 4;   // Slight weakness
-      if (value < 55000) return 2;   // Normal bull baseline
-      return 1;                      // All-time high expansion
+    case 'BREADTH': {
+      // Benchmark against recent peak baseline (~20,000)
+      const peak = 20000; 
+      const drawdown = (peak - value) / peak;
+
+      if (drawdown >= 0.30) return 9; // > 30% crash
+      if (drawdown >= 0.20) return 8; // > 20% bear market
+      if (drawdown >= 0.10) return 6; // > 10% correction
+      if (drawdown >= 0.05) return 4; // > 5% dip
+      return 1;                       // Steady / near peak
+    }
 
     default:
       return 0;
