@@ -53,11 +53,11 @@ export const INDICATOR_METRICS = {
     }
   },
   ted_spread: {
-    name: "3M Commercial Paper Rate",
+    name: "Effective Federal Funds Rate",
     evaluate: (val) => {
-      if (val > 5.5) return { score0to9: 8.0, status: "Tight Funding" };
-      if (val > 3.5) return { score0to9: 4.0, status: "Normal" };
-      return { score0to9: 1.0, status: "Low Rates" };
+      if (val > 5.5) return { score0to9: 7.0, status: "Restrictive" };
+      if (val > 3.0) return { score0to9: 4.0, status: "Elevated" };
+      return { score0to9: 1.0, status: "Accommodative" };
     }
   },
   fed_liquidity: {
@@ -70,7 +70,7 @@ export const INDICATOR_METRICS = {
     name: "Consumer Sentiment",
     evaluate: (val) => {
       if (val < 60) return { score0to9: 8.0, status: "Pessimistic" };
-      if (val < 75) return { score0to9: 5.0, status: subdued = true, status: "Subdued" };
+      if (val < 75) return { score0to9: 5.0, status: "Subdued" };
       return { score0to9: 1.0, status: "Confident" };
     }
   },
