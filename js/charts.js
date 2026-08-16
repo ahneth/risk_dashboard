@@ -54,8 +54,8 @@ export function renderCardChart(canvasId, seriesData, riskScoreHistoryData = [])
           label: 'Risk Score',
           data: alignedRiskValues,
           borderColor: '#f43f5e',
-          backgroundColor: '#f43f5e10',
-          borderWidth: 1.5,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 3,
           fill: false,
@@ -103,7 +103,7 @@ export function renderCardChart(canvasId, seriesData, riskScoreHistoryData = [])
           grid: { display: false },
           min: 0,
           max: 9,
-          ticks: { color: '#f43f5e', maxTicksLimit: 3 }
+          ticks: { color: '#f43f5e', maxTicksLimit: 3, stepSize: 3 }
         }
       }
     }
