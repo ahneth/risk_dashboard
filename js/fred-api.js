@@ -53,8 +53,20 @@ export function getLatestValidPoint(observations) {
 export function cleanSeriesData(observations) {
   if (!Array.isArray(observations)) return [];
 
+  // Calculate cutoff date for exactly 24 months ago from today
+  const cutoffDate = new Date();
+  cutoffDate.setMonth(cutoffDate.getMonth() - 24);
+  const cutoffTime = cutoffDate.getTime();
+
   return observations
-    .filter(obs => obs && obs.value !== '.' && obs.value !== null && !isNaN(parseFloat(obs.value)))
+    .filter(obs => {
+      if (!obs || obs.value === '.' || obs.value === null || isNaN(parseFloat(obs.value))) {
+        return false;
+      }
+      // Keep only points within the last 24 months
+      const obsTime = new Date(`${obs.date}T00:00:00Z`).getTime();
+      return obsTime >= cutoffTime;
+    })
     .map(obs => ({
       x: obs.date,
       y: parseFloat(obs.value)
