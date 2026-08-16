@@ -29,7 +29,7 @@ async function loadDashboardData() {
   const fetchPromises = Object.entries(SERIES_IDS).map(async ([key, seriesId]) => {
     try {
       const obs = await fetchFredSeries(seriesId, apiKey);
-      seriesData[key] = obs;
+      seriesData[key] = obs || [];
     } catch (err) {
       console.error(`Failed loading ${key}:`, err);
       seriesData[key] = [];
@@ -81,8 +81,6 @@ async function loadDashboardData() {
   }
 
   const sp500Clean = cleanSeriesData(seriesData.sp500 || []);
-  
-  // Build lookup maps and keep track of latest valid values for forward-filling slower series (monthly/weekly)
   const sortedDates = sp500Clean.map(p => p.x);
   const seriesMaps = {};
   
