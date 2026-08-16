@@ -1,45 +1,30 @@
 export async function fetchFredSeries(seriesId, apiKey) {
-  const targetUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+  // Use direct FRED endpoint with alternative browser-supported public proxy fallbacks
+  const primaryUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
+  const proxyUrls = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(primaryUrl)}`,
+    primaryUrl
+  ];
 
-  try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const wrapper = await response.json();
-    let data;
-    
-    if (wrapper.contents) {
-      data = JSON.parse(wrapper.contents);
-    } else {
-      data = wrapper;
-    }
-
-    if (data && data.observations) {
-      return data.observations;
-    } else {
-      console.warn(`No observations found for series: ${seriesId}`, data);
-      return [];
-    }
-  } catch (err) {
-    console.warn(`Proxy fetch failed for ${seriesId}, attempting direct fetch...`, err);
-    
+  for (const url of proxyUrls) {
     try {
-      const directResponse = await fetch(targetUrl);
-      const directData = await directResponse.json();
-      return directData.observations || [];
-    } catch (directErr) {
-      console.error(`Failed completely to fetch series ${seriesId}:`, directErr);
-      return [];
+      const response = await fetch(url);
+      if (!response.ok) continue;
+      
+      const data = await response.json();
+      if (data && Array.isArray(data.observations)) {
+        return data.observations;
+      }
+    } catch (err) {
+      console.warn(`Attempt failed for ${seriesId} using URL: ${url}`, err);
     }
   }
+
+  console.error(`All fetch attempts failed for series: ${seriesId}`);
+  return [];
 }
 
-/**
- * Grabs the absolute latest valid (non-dot) observation from a series array.
- */
 export function getLatestValidPoint(observations) {
   if (!observations || !Array.isArray(observations) || observations.length === 0) {
     return null;
@@ -57,9 +42,6 @@ export function getLatestValidPoint(observations) {
   return null;
 }
 
-/**
- * Cleans observations and ensures forward-filling capability for timeline alignment.
- */
 export function cleanSeriesData(observations) {
   if (!observations || !Array.isArray(observations)) return [];
 
