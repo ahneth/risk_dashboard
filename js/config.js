@@ -5,7 +5,7 @@ export const SERIES_IDS = {
   sahm_rule: 'SAHMREALTIME',
   nfci: 'NFCI',
   stlfsi: 'STLFSI4',
-  ted_spread: 'CPF3M', // Replaced discontinued TEDRATE with 3-Month Commercial Paper Rate
+  ted_spread: 'DFF', // Replaced with Effective Federal Funds Rate (guaranteed active daily data)
   fed_liquidity: 'WALCL',
   consumer_sentiment: 'UMCSENT',
   vix: 'VIXCLS',
