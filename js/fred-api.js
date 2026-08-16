@@ -18,7 +18,6 @@ export async function fetchFredSeries(seriesId, apiKey) {
     }
   }
 
-  // Final direct attempt fallback
   try {
     const response = await fetch(primaryUrl);
     if (response.ok) {
@@ -55,10 +54,7 @@ export function cleanSeriesData(observations) {
   if (!Array.isArray(observations)) return [];
 
   return observations
-    .filter(obs => {
-      // Filter out FRED missing data markers (.) and non-numeric values
-      return obs && obs.value !== '.' && obs.value !== null && !isNaN(parseFloat(obs.value));
-    })
+    .filter(obs => obs && obs.value !== '.' && obs.value !== null && !isNaN(parseFloat(obs.value)))
     .map(obs => ({
       x: obs.date,
       y: parseFloat(obs.value)
