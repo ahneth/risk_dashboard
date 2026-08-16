@@ -61,13 +61,10 @@ async function loadDashboardData() {
     }
 
     const cleanData = cleanSeriesData(obs);
-    const riskTrend = cleanData.map(pt => ({
-      x: pt.x,
-      y: evaluatePointRisk(id, pt.y).score0to9
-    }));
-
     const currentScore = latestValues[id] !== undefined ? evaluatePointRisk(id, latestValues[id]).score0to9 : 0;
-    renderCardChart(`${id}Chart`, cleanData, riskTrend, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
+    
+    // Pass clean data array directly to individual card chart renderer
+    renderCardChart(`${id}Chart`, cleanData, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
   });
 
   const totalScore = calculateAggregateRiskScore(latestValues);
@@ -80,7 +77,20 @@ async function loadDashboardData() {
   }
 
   const sp500Clean = cleanSeriesData(seriesData.sp500 || []);
-  const sortedDates = sp500Clean.map(p => p.x);
+  
+  // Build a robust global timeline map from all available series dates so nothing drops out
+  const dateSet = new Set();
+  sp500Clean.forEach(pt => dateSet.add(pt.x));
+  
+  indicators.forEach(id => {
+    (seriesData[id] || []).forEach(obs => {
+      if (obs.value !== '.' && !isNaN(parseFloat(obs.value))) {
+        dateSet.add(obs.date);
+      }
+    });
+  });
+
+  const sortedDates = Array.from(dateSet).sort();
   const seriesMaps = {};
   
   indicators.forEach(id => {
@@ -96,24 +106,42 @@ async function loadDashboardData() {
   const lastKnownValues = {};
 
   sortedDates.forEach(dateStr => {
-    const currentPointValues = {};
-    
+    let hasValues = false;
     indicators.forEach(id => {
       if (seriesMaps[id][dateStr] !== undefined) {
         lastKnownValues[id] = seriesMaps[id][dateStr];
-      }
-      if (lastKnownValues[id] !== undefined) {
-        currentPointValues[id] = lastKnownValues[id];
+        hasValues = true;
       }
     });
 
-    consolidatedRiskHistory.push({
-      x: dateStr,
-      y: calculateAggregateRiskScore(currentPointValues)
-    });
+    if (hasValues) {
+      const currentPointValues = {};
+      indicators.forEach(id => {
+        if (lastKnownValues[id] !== undefined) {
+          currentPointValues[id] = lastKnownValues[id];
+        }
+      });
+
+      consolidatedRiskHistory.push({
+        x: dateStr,
+        y: calculateAggregateRiskScore(currentPointValues)
+      });
+    }
   });
 
-  renderCombinedChart(sp500Clean, consolidatedRiskHistory);
+  // Align S&P 500 points against the master timeline for the combined chart
+  const sp500Map = {};
+  sp500Clean.forEach(pt => { sp500Map[pt.x] = pt.y; });
+  
+  let lastSpVal = null;
+  const alignedSp500Data = sortedDates.map(dateStr => {
+    if (sp500Map[dateStr] !== undefined) {
+      lastSpVal = sp500Map[dateStr];
+    }
+    return { x: dateStr, y: lastSpVal };
+  }).filter(pt => pt.y !== null);
+
+  renderCombinedChart(alignedSp500Data, consolidatedRiskHistory);
   updateBanner('Dashboard successfully synchronized with live FRED data feeds.', 'success');
 }
 
