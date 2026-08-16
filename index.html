@@ -1,4 +1,4 @@
-<!DOCTYPE html>  
+<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
@@ -77,7 +77,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Yield Curve (10Y - 2Y)</span>
               <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="yield_curve-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="yield_curve-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Measures the spread between 10-year and 2-year US Treasuries. Inversions signal potential economic recession.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="yield_curveChart"></canvas>
@@ -90,7 +91,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">High Yield Spread</span>
               <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="credit_spread-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="credit_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Option-adjusted spread on high-yield corporate bonds over risk-free rates, indicating corporate credit stress.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="credit_spreadChart"></canvas>
@@ -103,7 +105,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">BBB Corp Spread</span>
               <span id="bbb_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="bbb_spread-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="bbb_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Measures investment-grade BBB corporate bond yields over Treasuries, monitoring risk at the edge of high-yield.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="bbb_spreadChart"></canvas>
@@ -116,7 +119,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Sahm Rule Recession</span>
               <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="sahm_rule-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="sahm_rule-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Signals the start of a recession when the 3-month moving average of the national unemployment rate rises by 0.50%+</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="sahm_ruleChart"></canvas>
@@ -129,7 +133,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Financial Conditions (NFCI)</span>
               <span id="nfci-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="nfci-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="nfci-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Chicago Fed National Financial Conditions Index tracking money markets, debt, equity, and shadow banking.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="nfciChart"></canvas>
@@ -142,7 +147,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">St. Louis Financial Stress</span>
               <span id="stlfsi-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="stlfsi-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="stlfsi-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">STLFSI measures financial stress in the US financial market based on 18 weekly economic indicators.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="stlfsiChart"></canvas>
@@ -155,7 +161,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">TED Spread</span>
               <span id="ted_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="ted_spread-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="ted_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Indicator of perceived credit risk in the global interbank lending market.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="ted_spreadChart"></canvas>
@@ -168,7 +175,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Fed Total Assets</span>
               <span id="fed_liquidity-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="fed_liquidity-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="fed_liquidity-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Tracks the expansion or contraction of the Federal Reserve's balance sheet and systemic liquidity.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="fed_liquidityChart"></canvas>
@@ -181,7 +189,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Consumer Sentiment</span>
               <span id="consumer_sentiment-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="consumer_sentiment-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="consumer_sentiment-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">University of Michigan consumer sentiment index measuring household confidence in economic outlook.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="consumer_sentimentChart"></canvas>
@@ -194,7 +203,8 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">CBOE Volatility (VIX)</span>
               <span id="vix-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
-            <div id="vix-val" class="text-2xl font-black text-white mb-3">Loading...</div>
+            <div id="vix-val" class="text-2xl font-black text-white mb-2">Loading...</div>
+            <p class="text-xs text-slate-400 mb-3">Measures expected 30-day volatility of the S&P 500 options market, reflecting investor fear.</p>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="vixChart"></canvas>
