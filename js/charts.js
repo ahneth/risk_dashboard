@@ -13,7 +13,7 @@ export function initChartDefaults() {
 let cardCharts = {};
 let combinedChartInstance = null;
 
-export function renderCardChart(canvasId, seriesData, primaryColor = '#38bdf8') {
+export function renderCardChart(canvasId, seriesData, riskScoreHistoryData = []) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
@@ -26,6 +26,13 @@ export function renderCardChart(canvasId, seriesData, primaryColor = '#38bdf8') 
   const labels = seriesData.map(pt => pt.x);
   const values = seriesData.map(pt => pt.y);
 
+  const riskMap = {};
+  riskScoreHistoryData.forEach(pt => {
+    riskMap[pt.x] = pt.y;
+  });
+
+  const alignedRiskValues = labels.map(dateStr => riskMap[dateStr] !== undefined ? riskMap[dateStr] : null);
+
   cardCharts[canvasId] = new Chart(ctx, {
     type: 'line',
     data: {
@@ -34,14 +41,27 @@ export function renderCardChart(canvasId, seriesData, primaryColor = '#38bdf8') 
         {
           label: 'Value',
           data: values,
-          borderColor: primaryColor,
-          backgroundColor: primaryColor + '20',
+          borderColor: '#38bdf8',
+          backgroundColor: '#38bdf810',
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 3,
           fill: true,
           tension: 0.1,
           yAxisID: 'y'
+        },
+        {
+          label: 'Risk Score',
+          data: alignedRiskValues,
+          borderColor: '#f43f5e',
+          backgroundColor: '#f43f5e10',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          fill: false,
+          tension: 0.1,
+          yAxisID: 'y1',
+          spanGaps: true
         }
       ]
     },
@@ -71,8 +91,19 @@ export function renderCardChart(canvasId, seriesData, primaryColor = '#38bdf8') 
         },
         y: {
           type: 'linear',
+          display: true,
+          position: 'left',
           grid: { color: '#1e293b' },
-          ticks: { color: '#64748b', maxTicksLimit: 4 }
+          ticks: { color: '#38bdf8', maxTicksLimit: 4 }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          grid: { display: false },
+          min: 0,
+          max: 9,
+          ticks: { color: '#f43f5e', maxTicksLimit: 3 }
         }
       }
     }
