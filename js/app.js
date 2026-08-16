@@ -44,12 +44,11 @@ async function loadDashboardData() {
   indicators.forEach((id) => {
     const obs = seriesData[id] || [];
     
-    // Determine appropriate unit formatting
     let unit = '';
     if (['yield_curve', 'credit_spread', 'bbb_spread', 'sahm_rule', 'ted_spread'].includes(id)) {
       unit = '%';
     } else if (id === 'fed_liquidity') {
-      unit = 'M'; // Millions (FRED WALCL scale)
+      unit = 'M';
     }
 
     const latest = updateCardValue(id, obs, unit);
@@ -72,7 +71,6 @@ async function loadDashboardData() {
     renderCardChart(`${id}Chart`, cleanData, riskTrend, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
   });
 
-  // Calculate weighted total risk score out of 9.0 for current state
   const totalScore = calculateAggregateRiskScore(latestValues);
   updateOverallScore(totalScore);
 
@@ -82,38 +80,45 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
-  // Build historical consolidated risk score timeline mapped by date matching S&P 500 dates
   const sp500Clean = cleanSeriesData(seriesData.sp500 || []);
   
-  const dateValueMaps = {};
+  // Build lookup maps and keep track of latest valid values for forward-filling slower series (monthly/weekly)
+  const sortedDates = sp500Clean.map(p => p.x);
+  const seriesMaps = {};
+  
   indicators.forEach(id => {
-    dateValueMaps[id] = {};
+    seriesMaps[id] = {};
     (seriesData[id] || []).forEach(obs => {
       if (obs.value !== '.' && !isNaN(parseFloat(obs.value))) {
-        dateValueMaps[id][obs.date] = parseFloat(obs.value);
+        seriesMaps[id][obs.date] = parseFloat(obs.value);
       }
     });
   });
 
-  const consolidatedRiskHistory = sp500Clean.map(pt => {
-    const dateStr = pt.x;
+  const consolidatedRiskHistory = [];
+  const lastKnownValues = {};
+
+  sortedDates.forEach(dateStr => {
     const currentPointValues = {};
     
     indicators.forEach(id => {
-      if (dateValueMaps[id][dateStr] !== undefined) {
-        currentPointValues[id] = dateValueMaps[id][dateStr];
+      if (seriesMaps[id][dateStr] !== undefined) {
+        lastKnownValues[id] = seriesMaps[id][dateStr];
+      }
+      if (lastKnownValues[id] !== undefined) {
+        currentPointValues[id] = lastKnownValues[id];
       }
     });
 
-    return {
+    consolidatedRiskHistory.push({
       x: dateStr,
       y: calculateAggregateRiskScore(currentPointValues)
-    };
+    });
   });
 
   renderCombinedChart(sp500Clean, consolidatedRiskHistory);
 
-  updateBanner('Dashboard updated successfully with 10 macro indicators.', 'success');
+  updateBanner('Dashboard updated successfully with all 10 macro indicators.', 'success');
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
@@ -132,7 +137,6 @@ function updateCardValue(indicatorId, observations, unit = '') {
 
     let displayVal = latest.value.toFixed(2);
     if (unit === 'M') {
-      // Convert millions to trillions for clean readable layout (e.g. $7.24T)
       displayVal = `$${(latest.value / 1000000).toFixed(2)}T`;
       unit = '';
     }
