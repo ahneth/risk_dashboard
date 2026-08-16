@@ -1,121 +1,85 @@
-/**
- * Configuration for indicator thresholds, weights, and scoring rules.
- * Total weights across all risk indicators sum up to exactly 9.0.
- */
 export const INDICATOR_METRICS = {
-  vix: {
-    weight: 1.10,
-    calcScore: (val) => {
-      if (val >= 35) return 1.0;
-      if (val <= 12) return 0.0;
-      return (val - 12) / (35 - 12);
-    }
-  },
-  yield_curve: {
-    weight: 1.25,
-    calcScore: (val) => {
-      if (val < -0.50) return 1.0;
-      if (val > 0.50) return 0.0;
-      return (0.50 - val) / (0.50 - (-0.50));
-    }
-  },
-  credit_spread: {
-    weight: 1.10,
-    calcScore: (val) => {
-      if (val >= 6.0) return 1.0;
-      if (val <= 3.0) return 0.0;
-      return (val - 3.0) / (6.0 - 3.0);
-    }
-  },
-  bbb_spread: {
-    weight: 1.10,
-    calcScore: (val) => {
-      if (val >= 3.5) return 1.0;
-      if (val <= 1.2) return 0.0;
-      return (val - 1.2) / (3.5 - 1.2);
-    }
-  },
-  sahm_rule: {
-    weight: 1.10,
-    calcScore: (val) => {
-      if (val >= 0.50) return 1.0;
-      if (val <= 0.0) return 0.0;
-      return val / 0.50;
-    }
-  },
-  nfci: {
-    weight: 0.85,
-    calcScore: (val) => {
-      if (val >= 0.50) return 1.0;
-      if (val <= -0.50) return 0.0;
-      return (val - (-0.50)) / (0.50 - (-0.50));
-    }
-  },
-  stlfsi: {
-    weight: 0.85,
-    calcScore: (val) => {
-      if (val >= 1.5) return 1.0;
-      if (val <= -1.0) return 0.0;
-      return (val - (-1.0)) / (1.5 - (-1.0));
-    }
-  },
-  ted_spread: {
-    weight: 0.75,
-    calcScore: (val) => {
-      if (val >= 1.50) return 1.0;
-      if (val <= 0.20) return 0.0;
-      return (val - 0.20) / (1.50 - 0.20);
-    }
-  },
-  fed_liquidity: {
-    weight: 0.50,
-    calcScore: (val) => {
-      // Using balance sheet level as proxy: lower total assets / aggressive QT = higher risk score
-      // Normalized baseline roughly between 6.5T (stressed drain) and 9.0T (peak expansion)
-      if (val <= 6500000) return 1.0;
-      if (val >= 8900000) return 0.0;
-      return (8900000 - val) / (8900000 - 6500000);
-    }
-  },
-  consumer_sentiment: {
-    weight: 0.50,
-    calcScore: (val) => {
-      if (val <= 55) return 1.0;
-      if (val >= 90) return 0.0;
-      return (90 - val) / (90 - 55);
-    }
-  }
+  yield_curve: { name: 'Yield Curve (10Y-2Y)' },
+  credit_spread: { name: 'High Yield Spread' },
+  bbb_spread: { name: 'BBB Corp Spread' },
+  sahm_rule: { name: 'Sahm Rule' },
+  nfci: { name: 'NFCI' },
+  stlfsi: { name: 'St. Louis Financial Stress' },
+  ted_spread: { name: 'TED Spread' },
+  fed_liquidity: { name: 'Fed Total Assets' },
+  consumer_sentiment: { name: 'Consumer Sentiment' },
+  vix: { name: 'VIX' }
 };
 
-/**
- * Calculates raw score (0-9) and weighted contribution for a specific indicator point
- */
-export function evaluatePointRisk(indicatorId, rawValue) {
-  const metric = INDICATOR_METRICS[indicatorId];
-  if (!metric || rawValue === null || rawValue === undefined || isNaN(rawValue)) {
-    return { score0to9: 0, weightedContribution: 0 };
+export function evaluatePointRisk(indicatorId, value) {
+  if (value === null || value === undefined || isNaN(value)) {
+    return { score0to9: 0 };
   }
 
-  const normalized = Math.min(1, Math.max(0, metric.calcScore(rawValue)));
-  const score0to9 = normalized * 9.0;
-  const weightedContribution = normalized * metric.weight;
+  let score0to9 = 0;
 
-  return {
-    score0to9: parseFloat(score0to9.toFixed(1)),
-    weightedContribution
-  };
+  switch (indicatorId) {
+    case 'yield_curve':
+      // Inverted yield curve (< 0) signals high risk
+      if (value < 0) score0to9 = 9.0;
+      else if (value < 0.5) score0to9 = 5.0;
+      else score0to9 = 1.0;
+      break;
+
+    case 'credit_spread':
+    case 'bbb_spread':
+      // Higher spreads = higher distress
+      if (value > 6.0) score0to9 = 9.0;
+      else if (value > 4.5) score0to9 = 6.0;
+      else if (value > 3.5) score0to9 = 3.0;
+      else score0to9 = 1.0;
+      break;
+
+    case 'sahm_rule':
+      if (value >= 0.5) score0to9 = 9.0;
+      else if (value >= 0.3) score0to9 = 5.0;
+      else score0to9 = 0.0;
+      break;
+
+    case 'vix':
+      if (value > 30) score0to9 = 9.0;
+      else if (value > 20) score0to9 = 5.0;
+      else score0to9 = 1.0;
+      break;
+
+    case 'nfci':
+    case 'stlfsi':
+      if (value > 1.0) score0to9 = 9.0;
+      else if (value > 0.0) score0to9 = 5.0;
+      else score0to9 = 1.0;
+      break;
+
+    case 'consumer_sentiment':
+      if (value < 60) score0to9 = 9.0;
+      else if (value < 75) score0to9 = 5.0;
+      else score0to9 = 1.0;
+      break;
+
+    default:
+      score0to9 = 2.0;
+      break;
+  }
+
+  return { score0to9: Math.min(Math.max(score0to9, 0), 9.0) };
 }
 
-/**
- * Calculates total combined systemic risk score out of 9.0
- */
-export function calculateAggregateRiskScore(latestIndicatorValues) {
-  let totalScore = 0;
-
-  Object.entries(latestIndicatorValues).forEach(([id, val]) => {
-    const { weightedContribution } = evaluatePointRisk(id, val);
-    totalScore += weightedContribution;
+export function calculateAggregateRiskScore(latestValues) {
+  const scores = [];
+  Object.keys(latestValues).forEach(id => {
+    const val = latestValues[id];
+    if (val !== undefined && val !== null) {
+      const { score0to9 } = evaluatePointRisk(id, val);
+      scores.push(score0to9);
+    }
   });
 
-  return parseFloat(Math.min(9.0, totalScore).toFixed(1));
+  if (scores.length === 0) return '0.0';
+
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  return avg.toFixed(1);
 }
