@@ -78,14 +78,14 @@ export function renderCardChart(canvasId, dataPoints, riskPoints, strokeColor = 
 }
 
 export function renderCombinedChart(sp500Data, riskScoreData) {
-  const canvas = document.getElementById('combinedChart');
+  const canvas = document.getElementById('combinedRiskChart');
   if (!canvas) return;
 
-  if (charts['combinedChart']) {
-    charts['combinedChart'].destroy();
+  if (charts['combinedRiskChart']) {
+    charts['combinedRiskChart'].destroy();
   }
 
-  charts['combinedChart'] = new Chart(canvas, {
+  charts['combinedRiskChart'] = new Chart(canvas, {
     type: 'line',
     data: {
       labels: sp500Data.map(p => p.x),
