@@ -70,8 +70,6 @@ async function loadDashboardData() {
     renderCardChart(canvasId, cleanData, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
   });
 
-  });
-
   const totalScore = calculateAggregateRiskScore(latestValues);
   updateOverallScore(totalScore);
 
