@@ -61,7 +61,6 @@ async function loadDashboardData() {
     }
 
     const cleanData = cleanSeriesData(obs);
-
     const riskTrend = cleanData.map(pt => ({
       x: pt.x,
       y: evaluatePointRisk(id, pt.y).score0to9
@@ -115,12 +114,14 @@ async function loadDashboardData() {
   });
 
   renderCombinedChart(sp500Clean, consolidatedRiskHistory);
-
-  updateBanner('Dashboard updated successfully with all 10 macro indicators.', 'success');
+  updateBanner('Dashboard updated successfully with all active macro indicators.', 'success');
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
-  const valElement = document.getElementById(`${indicatorId}-val`);
+  // Support both underscore and hyphen styles in DOM lookups (e.g., yield_curve vs yield-curve)
+  const altId = indicatorId.replace(/_/g, '-');
+  const valElement = document.getElementById(`${indicatorId}-val`) || document.getElementById(`${altId}-val`);
+  
   if (!valElement) return null;
 
   const latest = getLatestValidPoint(observations);
@@ -153,8 +154,9 @@ function updateCardValue(indicatorId, observations, unit = '') {
 }
 
 function updateIndicatorBadge(indicatorId, score0to9 = 0, isMissing = false) {
-  const badge = document.getElementById(`${indicatorId}-score-badge`) ||
-                document.getElementById(`${indicatorId.replace('_', '-')}-score-badge`);
+  const altId = indicatorId.replace(/_/g, '-');
+  const badge = document.getElementById(`${indicatorId}-score-badge`) || 
+                document.getElementById(`${altId}-score-badge`);
   if (!badge) return;
 
   if (isMissing) {
