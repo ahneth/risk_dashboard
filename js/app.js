@@ -63,7 +63,6 @@ async function loadDashboardData() {
     const cleanData = cleanSeriesData(obs);
     const currentScore = latestValues[id] !== undefined ? evaluatePointRisk(id, latestValues[id]).score0to9 : 0;
     
-    // Check both underscore and hyphen formats to ensure canvas is found
     const altId = id.replace(/_/g, '-');
     const canvasId = document.getElementById(`${id}Chart`) ? `${id}Chart` : `${altId}Chart`;
 
@@ -81,7 +80,6 @@ async function loadDashboardData() {
 
   const sp500Clean = cleanSeriesData(seriesData.sp500 || []);
   
-  // Build a robust global timeline map from all available series dates so nothing drops out
   const dateSet = new Set();
   sp500Clean.forEach(pt => dateSet.add(pt.x));
   
@@ -132,7 +130,6 @@ async function loadDashboardData() {
     }
   });
 
-  // Align S&P 500 points against the master timeline for the combined chart
   const sp500Map = {};
   sp500Clean.forEach(pt => { sp500Map[pt.x] = pt.y; });
   
