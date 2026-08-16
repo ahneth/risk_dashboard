@@ -43,7 +43,14 @@ async function loadDashboardData() {
 
   indicators.forEach((id) => {
     const obs = seriesData[id] || [];
-    const unit = (id === 'yield_curve' || id === 'credit_spread' || id === 'sahm_rule') ? '%' : '';
+    
+    // Determine appropriate unit formatting
+    let unit = '';
+    if (['yield_curve', 'credit_spread', 'bbb_spread', 'sahm_rule', 'ted_spread'].includes(id)) {
+      unit = '%';
+    } else if (id === 'fed_liquidity') {
+      unit = 'M'; // Millions (FRED WALCL scale)
+    }
 
     const latest = updateCardValue(id, obs, unit);
     if (latest) {
@@ -106,7 +113,7 @@ async function loadDashboardData() {
 
   renderCombinedChart(sp500Clean, consolidatedRiskHistory);
 
-  updateBanner('Dashboard updated successfully.', 'success');
+  updateBanner('Dashboard updated successfully with 10 macro indicators.', 'success');
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
@@ -123,8 +130,15 @@ function updateCardValue(indicatorId, observations, unit = '') {
       timeZone: 'UTC'
     });
 
+    let displayVal = latest.value.toFixed(2);
+    if (unit === 'M') {
+      // Convert millions to trillions for clean readable layout (e.g. $7.24T)
+      displayVal = `$${(latest.value / 1000000).toFixed(2)}T`;
+      unit = '';
+    }
+
     valElement.innerHTML = `
-      ${latest.value.toFixed(2)}${unit}
+      ${displayVal}${unit}
       <span class="text-xs font-normal text-slate-400 block sm:inline sm:ml-1">
         (${formattedDate})
       </span>
