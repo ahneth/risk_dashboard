@@ -1,13 +1,13 @@
 export const SERIES_IDS = {
-  sp500: 'SP500',
-  vix: 'VIXCLS',
   yield_curve: 'T10Y2Y',
-  credit_spread: 'BAMLH0A0HYM2',
+  credit_spread: 'BAMLC0A0CM',
+  bbb_spread: 'BAMLC0A4CBBB',
   sahm_rule: 'SAHMREALTIME',
   nfci: 'NFCI',
   stlfsi: 'STLFSI4',
-  ted_spread: 'TEDRATE',
-  bbb_spread: 'BAMLC0A4CBBB',
+  ted_spread: 'CPF3M', // Replaced discontinued TEDRATE with 3-Month Commercial Paper Rate
   fed_liquidity: 'WALCL',
-  consumer_sentiment: 'UMCSENT'
+  consumer_sentiment: 'UMCSENT',
+  vix: 'VIXCLS',
+  sp500: 'SP500'
 };
