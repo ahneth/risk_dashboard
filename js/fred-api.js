@@ -1,15 +1,56 @@
+export async function fetchFredSeries(seriesId, apiKey) {
+  const targetUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+  try {
+    const response = await fetch(proxyUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const wrapper = await response.json();
+    let data;
+    
+    if (wrapper.contents) {
+      data = JSON.parse(wrapper.contents);
+    } else {
+      data = wrapper;
+    }
+
+    if (data && data.observations) {
+      return data.observations;
+    } else {
+      console.warn(`No observations found for series: ${seriesId}`, data);
+      return [];
+    }
+  } catch (err) {
+    console.warn(`Proxy fetch failed for ${seriesId}, attempting direct fetch...`, err);
+    
+    try {
+      const directResponse = await fetch(targetUrl);
+      const directData = await directResponse.json();
+      return directData.observations || [];
+    } catch (directErr) {
+      console.error(`Failed completely to fetch series ${seriesId}:`, directErr);
+      return [];
+    }
+  }
+}
+
 /**
- * Locates newest valid non-null numeric observation.
+ * Grabs the absolute latest valid (non-dot) observation from a series array.
  */
 export function getLatestValidPoint(observations) {
-  if (!Array.isArray(observations)) return null;
+  if (!observations || !Array.isArray(observations) || observations.length === 0) {
+    return null;
+  }
 
   for (let i = observations.length - 1; i >= 0; i--) {
-    const rawVal = observations[i]?.value;
-    if (rawVal !== undefined && rawVal !== null && rawVal !== '.' && !isNaN(parseFloat(rawVal))) {
+    const val = observations[i].value;
+    if (val !== '.' && val !== undefined && val !== null && !isNaN(parseFloat(val))) {
       return {
-        value: parseFloat(rawVal),
-        date: observations[i].date
+        date: observations[i].date,
+        value: parseFloat(val)
       };
     }
   }
@@ -17,37 +58,15 @@ export function getLatestValidPoint(observations) {
 }
 
 /**
- * Filters out holiday/missing values for Chart.js
+ * Cleans observations and ensures forward-filling capability for timeline alignment.
  */
 export function cleanSeriesData(observations) {
-  if (!Array.isArray(observations)) return [];
+  if (!observations || !Array.isArray(observations)) return [];
 
   return observations
-    .filter(obs => obs.value !== '.' && obs.value !== null && obs.value !== undefined)
+    .filter(obs => obs.value !== '.' && obs.value !== undefined && !isNaN(parseFloat(obs.value)))
     .map(obs => ({
       x: obs.date,
       y: parseFloat(obs.value)
-    }))
-    .filter(point => !isNaN(point.y));
-}
-
-/**
- * Queries FRED API via CORS proxy with a strict 24-month start date parameter
- */
-export async function fetchFredSeries(seriesId, apiKey) {
-  // Dynamically calculate start date 24 months ago from today (YYYY-MM-DD)
-  const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - 24);
-  const startDateStr = startDate.toISOString().split('T')[0];
-
-  const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDateStr}`;
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fredUrl)}`;
-
-  const response = await fetch(proxyUrl);
-  if (!response.ok) {
-    throw new Error(`FRED API fetch failed (${response.status}) for ${seriesId}`);
-  }
-
-  const data = await response.json();
-  return data.observations || [];
+    }));
 }
