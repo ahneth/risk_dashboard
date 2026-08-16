@@ -78,7 +78,12 @@
               <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="yield_curve-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Measures the spread between 10-year and 2-year US Treasuries. Inversions signal potential economic recession.</p>
+            <p class="text-xs text-slate-400 mb-2">Measures the spread between 10-year and 2-year US Treasuries. Inversions signal potential economic recession.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&gt; 0.5%: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">0 to 0.5%: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&lt; 0%: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="yield_curveChart"></canvas>
@@ -92,7 +97,12 @@
               <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="credit_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Option-adjusted spread on high-yield corporate bonds over risk-free rates, indicating corporate credit stress.</p>
+            <p class="text-xs text-slate-400 mb-2">Option-adjusted spread on high-yield corporate bonds over risk-free rates, indicating corporate credit stress.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 3.5%: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">3.5% - 4.5%: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 4.5%: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="credit_spreadChart"></canvas>
@@ -106,7 +116,12 @@
               <span id="bbb_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="bbb_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Measures investment-grade BBB corporate bond yields over Treasuries, monitoring risk at the edge of high-yield.</p>
+            <p class="text-xs text-slate-400 mb-2">Measures investment-grade BBB corporate bond yields over Treasuries, monitoring risk at the edge of high-yield.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 1.7%: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">1.7% - 2.2%: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 2.2%: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="bbb_spreadChart"></canvas>
@@ -120,7 +135,12 @@
               <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="sahm_rule-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Signals the start of a recession when the 3-month moving average of the national unemployment rate rises by 0.50%+</p>
+            <p class="text-xs text-slate-400 mb-2">Signals the start of a recession when the 3-month moving average of national unemployment rises by 0.50%+</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 0.35%: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">0.35% - 0.50%: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt;= 0.50%: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="sahm_ruleChart"></canvas>
@@ -134,7 +154,12 @@
               <span id="nfci-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="nfci-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Chicago Fed National Financial Conditions Index tracking money markets, debt, equity, and shadow banking.</p>
+            <p class="text-xs text-slate-400 mb-2">Chicago Fed National Financial Conditions Index tracking money markets, debt, equity, and shadow banking.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; -0.5: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">-0.5 to 0.0: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 0.0: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="nfciChart"></canvas>
@@ -148,7 +173,12 @@
               <span id="stlfsi-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="stlfsi-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">STLFSI measures financial stress in the US financial market based on 18 weekly economic indicators.</p>
+            <p class="text-xs text-slate-400 mb-2">STLFSI measures financial stress in the US financial market based on 18 weekly economic indicators.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; -0.5: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">-0.5 to 0.5: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 0.5: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="stlfsiChart"></canvas>
@@ -162,7 +192,12 @@
               <span id="ted_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="ted_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Tracks the central benchmark interest rate for overnight federal funds transactions.</p>
+            <p class="text-xs text-slate-400 mb-2">Tracks the central benchmark interest rate for overnight federal funds transactions.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 3.0%: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">3.0% - 5.5%: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 5.5%: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="ted_spreadChart"></canvas>
@@ -176,7 +211,12 @@
               <span id="fed_liquidity-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="fed_liquidity-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Tracks the expansion or contraction of the Federal Reserve's balance sheet and systemic liquidity.</p>
+            <p class="text-xs text-slate-400 mb-2">Tracks the expansion or contraction of the Federal Reserve's balance sheet and systemic liquidity.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">Expanding: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">Stable: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">Contracting: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="fed_liquidityChart"></canvas>
@@ -190,7 +230,12 @@
               <span id="consumer_sentiment-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="consumer_sentiment-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">University of Michigan consumer sentiment index measuring household confidence in economic outlook.</p>
+            <p class="text-xs text-slate-400 mb-2">University of Michigan consumer sentiment index measuring household confidence in economic outlook.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&gt; 75: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">60 - 75: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&lt; 60: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="consumer_sentimentChart"></canvas>
@@ -204,7 +249,12 @@
               <span id="vix-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
             </div>
             <div id="vix-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-3">Measures expected 30-day volatility of the S&P 500 options market, reflecting investor fear.</p>
+            <p class="text-xs text-slate-400 mb-2">Measures expected 30-day volatility of the S&P 500 options market, reflecting investor fear.</p>
+            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 15: Green</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">15 - 20: Amber</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 20: Red</span>
+            </div>
           </div>
           <div class="relative h-36 w-full mt-2">
             <canvas id="vixChart"></canvas>
