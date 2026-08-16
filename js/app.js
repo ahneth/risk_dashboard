@@ -23,7 +23,7 @@ function initApp() {
 }
 
 async function loadDashboardData() {
-  updateBanner('Fetching macroeconomic data from FRED...', 'info');
+  updateBanner('Fetching live macroeconomic data from FRED...', 'info');
 
   const seriesData = {};
   const fetchPromises = Object.entries(SERIES_IDS).map(async ([key, seriesId]) => {
@@ -114,11 +114,10 @@ async function loadDashboardData() {
   });
 
   renderCombinedChart(sp500Clean, consolidatedRiskHistory);
-  updateBanner('Dashboard updated successfully with all active macro indicators.', 'success');
+  updateBanner('Dashboard successfully synchronized with live FRED data feeds.', 'success');
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
-  // Support both underscore and hyphen styles in DOM lookups (e.g., yield_curve vs yield-curve)
   const altId = indicatorId.replace(/_/g, '-');
   const valElement = document.getElementById(`${indicatorId}-val`) || document.getElementById(`${altId}-val`);
   
