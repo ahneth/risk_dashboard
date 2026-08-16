@@ -63,8 +63,13 @@ async function loadDashboardData() {
     const cleanData = cleanSeriesData(obs);
     const currentScore = latestValues[id] !== undefined ? evaluatePointRisk(id, latestValues[id]).score0to9 : 0;
     
-    // Pass clean data array directly to individual card chart renderer
-    renderCardChart(`${id}Chart`, cleanData, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
+    // Check both underscore and hyphen formats to ensure canvas is found
+    const altId = id.replace(/_/g, '-');
+    const canvasId = document.getElementById(`${id}Chart`) ? `${id}Chart` : `${altId}Chart`;
+
+    renderCardChart(canvasId, cleanData, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
+  });
+
   });
 
   const totalScore = calculateAggregateRiskScore(latestValues);
