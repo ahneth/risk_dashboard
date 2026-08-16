@@ -78,15 +78,27 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
+  // Calculate strict 24-month cutoff threshold for master timeline
+  const cutoffDate = new Date();
+  cutoffDate.setMonth(cutoffDate.getMonth() - 24);
+  const cutoffTime = cutoffDate.getTime();
+
   const sp500Clean = cleanSeriesData(seriesData.sp500 || []);
   
   const dateSet = new Set();
-  sp500Clean.forEach(pt => dateSet.add(pt.x));
+  sp500Clean.forEach(pt => {
+    if (new Date(`${pt.x}T00:00:00Z`).getTime() >= cutoffTime) {
+      dateSet.add(pt.x);
+    }
+  });
   
   indicators.forEach(id => {
     (seriesData[id] || []).forEach(obs => {
       if (obs.value !== '.' && !isNaN(parseFloat(obs.value))) {
-        dateSet.add(obs.date);
+        const obsTime = new Date(`${obs.date}T00:00:00Z`).getTime();
+        if (obsTime >= cutoffTime) {
+          dateSet.add(obs.date);
+        }
       }
     });
   });
@@ -142,7 +154,7 @@ async function loadDashboardData() {
   }).filter(pt => pt.y !== null);
 
   renderCombinedChart(alignedSp500Data, consolidatedRiskHistory);
-  updateBanner('Dashboard successfully synchronized with live FRED data feeds.', 'success');
+  updateBanner('Dashboard successfully synchronized with live FRED data feeds (Last 24 Months).', 'success');
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
