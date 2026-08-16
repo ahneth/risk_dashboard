@@ -13,7 +13,7 @@ export function initChartDefaults() {
 let cardCharts = {};
 let combinedChartInstance = null;
 
-export function renderCardChart(canvasId, seriesData, riskTrendData, primaryColor = '#38bdf8') {
+export function renderCardChart(canvasId, seriesData, primaryColor = '#38bdf8') {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
@@ -23,7 +23,6 @@ export function renderCardChart(canvasId, seriesData, riskTrendData, primaryColo
     cardCharts[canvasId].destroy();
   }
 
-  // Extract explicit labels and values for Chart.js category compatibility
   const labels = seriesData.map(pt => pt.x);
   const values = seriesData.map(pt => pt.y);
 
@@ -71,6 +70,7 @@ export function renderCardChart(canvasId, seriesData, riskTrendData, primaryColo
           ticks: { maxTicksLimit: 5, color: '#64748b' }
         },
         y: {
+          type: 'linear', // Explicit linear type handles negative inverted yield numbers safely
           grid: { color: '#1e293b' },
           ticks: { color: '#64748b', maxTicksLimit: 4 }
         }
@@ -89,11 +89,9 @@ export function renderCombinedChart(sp500Data, riskHistoryData) {
     combinedChartInstance.destroy();
   }
 
-  // Use S&P 500 dates as the primary x-axis timeline labels
   const labels = sp500Data.map(pt => pt.x);
   const spValues = sp500Data.map(pt => pt.y);
 
-  // Map risk history values to match the label timeline array cleanly
   const riskMap = {};
   riskHistoryData.forEach(pt => {
     riskMap[pt.x] = pt.y;
@@ -109,7 +107,7 @@ export function renderCombinedChart(sp500Data, riskHistoryData) {
         {
           label: 'S&P 500',
           data: spValues,
-          borderColor: '#38bdf8', // Sky Blue
+          borderColor: '#38bdf8',
           backgroundColor: '#38bdf810',
           borderWidth: 2,
           pointRadius: 0,
@@ -120,7 +118,7 @@ export function renderCombinedChart(sp500Data, riskHistoryData) {
         {
           label: 'Macro Risk Index',
           data: alignedRiskValues,
-          borderColor: '#f43f5e', // Rose Red for Risk
+          borderColor: '#f43f5e',
           backgroundColor: '#f43f5e10',
           borderWidth: 2,
           pointRadius: 0,
