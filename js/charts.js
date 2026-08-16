@@ -23,13 +23,18 @@ export function renderCardChart(canvasId, seriesData, riskTrendData, primaryColo
     cardCharts[canvasId].destroy();
   }
 
+  // Extract explicit labels and values for Chart.js category compatibility
+  const labels = seriesData.map(pt => pt.x);
+  const values = seriesData.map(pt => pt.y);
+
   cardCharts[canvasId] = new Chart(ctx, {
     type: 'line',
     data: {
+      labels: labels,
       datasets: [
         {
           label: 'Value',
-          data: seriesData,
+          data: values,
           borderColor: primaryColor,
           backgroundColor: primaryColor + '20',
           borderWidth: 2,
@@ -62,16 +67,12 @@ export function renderCardChart(canvasId, seriesData, riskTrendData, primaryColo
       },
       scales: {
         x: {
-          type: 'category',
           grid: { display: false },
           ticks: { maxTicksLimit: 5, color: '#64748b' }
         },
         y: {
           grid: { color: '#1e293b' },
-          ticks: { color: '#64748b', maxTicksLimit: 4 },
-          // Allow negative scaling for Yield Curve inverted values
-          suggestedMin: undefined,
-          suggestedMax: undefined
+          ticks: { color: '#64748b', maxTicksLimit: 4 }
         }
       }
     }
@@ -88,13 +89,26 @@ export function renderCombinedChart(sp500Data, riskHistoryData) {
     combinedChartInstance.destroy();
   }
 
+  // Use S&P 500 dates as the primary x-axis timeline labels
+  const labels = sp500Data.map(pt => pt.x);
+  const spValues = sp500Data.map(pt => pt.y);
+
+  // Map risk history values to match the label timeline array cleanly
+  const riskMap = {};
+  riskHistoryData.forEach(pt => {
+    riskMap[pt.x] = pt.y;
+  });
+
+  const alignedRiskValues = labels.map(dateStr => riskMap[dateStr] !== undefined ? riskMap[dateStr] : null);
+
   combinedChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
+      labels: labels,
       datasets: [
         {
           label: 'S&P 500',
-          data: sp500Data,
+          data: spValues,
           borderColor: '#38bdf8', // Sky Blue
           backgroundColor: '#38bdf810',
           borderWidth: 2,
@@ -105,14 +119,15 @@ export function renderCombinedChart(sp500Data, riskHistoryData) {
         },
         {
           label: 'Macro Risk Index',
-          data: riskHistoryData,
+          data: alignedRiskValues,
           borderColor: '#f43f5e', // Rose Red for Risk
           backgroundColor: '#f43f5e10',
           borderWidth: 2,
           pointRadius: 0,
           fill: false,
           tension: 0.1,
-          yAxisID: 'y1'
+          yAxisID: 'y1',
+          spanGaps: true
         }
       ]
     },
@@ -143,7 +158,6 @@ export function renderCombinedChart(sp500Data, riskHistoryData) {
       },
       scales: {
         x: {
-          type: 'category',
           grid: { color: '#1e293b' },
           ticks: { maxTicksLimit: 8, color: '#64748b' }
         },
