@@ -1,5 +1,10 @@
 export async function fetchFredSeries(seriesId, apiKey) {
-  const primaryUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json`;
+  // Calculate date exactly 24 months ago (YYYY-MM-DD)
+  const d = new Date();
+  d.setMonth(d.getMonth() - 24);
+  const startDate = d.toISOString().split('T')[0];
+
+  const primaryUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
   const proxyUrls = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(primaryUrl)}`
@@ -53,20 +58,8 @@ export function getLatestValidPoint(observations) {
 export function cleanSeriesData(observations) {
   if (!Array.isArray(observations)) return [];
 
-  // Calculate cutoff date for exactly 24 months ago from today
-  const cutoffDate = new Date();
-  cutoffDate.setMonth(cutoffDate.getMonth() - 24);
-  const cutoffTime = cutoffDate.getTime();
-
   return observations
-    .filter(obs => {
-      if (!obs || obs.value === '.' || obs.value === null || isNaN(parseFloat(obs.value))) {
-        return false;
-      }
-      // Keep only points within the last 24 months
-      const obsTime = new Date(`${obs.date}T00:00:00Z`).getTime();
-      return obsTime >= cutoffTime;
-    })
+    .filter(obs => obs && obs.value !== '.' && obs.value !== null && !isNaN(parseFloat(obs.value)))
     .map(obs => ({
       x: obs.date,
       y: parseFloat(obs.value)
