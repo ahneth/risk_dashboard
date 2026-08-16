@@ -61,12 +61,12 @@ async function loadDashboardData() {
     }
 
     const cleanData = cleanSeriesData(obs);
-    const currentScore = latestValues[id] !== undefined ? evaluatePointRisk(id, latestValues[id]).score0to9 : 0;
     
     const altId = id.replace(/_/g, '-');
     const canvasId = document.getElementById(`${id}Chart`) ? `${id}Chart` : `${altId}Chart`;
 
-    renderCardChart(canvasId, cleanData, currentScore >= 6.0 ? '#f43f5e' : '#38bdf8');
+    // Universal blue (#38bdf8) line color for all indicator cards
+    renderCardChart(canvasId, cleanData, '#38bdf8');
   });
 
   const totalScore = calculateAggregateRiskScore(latestValues);
@@ -78,7 +78,6 @@ async function loadDashboardData() {
     sp500Badge.textContent = `S&P: ${sp500Latest.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
   }
 
-  // Calculate strict 24-month cutoff threshold for master timeline
   const cutoffDate = new Date();
   cutoffDate.setMonth(cutoffDate.getMonth() - 24);
   const cutoffTime = cutoffDate.getTime();
