@@ -62,11 +62,16 @@ async function loadDashboardData() {
 
     const cleanData = cleanSeriesData(obs);
     
+    // Build individual risk score history for this specific indicator
+    const indicatorRiskHistory = cleanData.map(pt => ({
+      x: pt.x,
+      y: evaluatePointRisk(id, pt.y).score0to9
+    }));
+    
     const altId = id.replace(/_/g, '-');
     const canvasId = document.getElementById(`${id}Chart`) ? `${id}Chart` : `${altId}Chart`;
 
-    // Universal blue (#38bdf8) line color for all indicator cards
-    renderCardChart(canvasId, cleanData, '#38bdf8');
+    renderCardChart(canvasId, cleanData, indicatorRiskHistory);
   });
 
   const totalScore = calculateAggregateRiskScore(latestValues);
