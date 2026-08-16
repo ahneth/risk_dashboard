@@ -70,7 +70,7 @@ export function renderCardChart(canvasId, seriesData, primaryColor = '#38bdf8') 
           ticks: { maxTicksLimit: 5, color: '#64748b' }
         },
         y: {
-          type: 'linear', // Explicit linear type handles negative inverted yield numbers safely
+          type: 'linear',
           grid: { color: '#1e293b' },
           ticks: { color: '#64748b', maxTicksLimit: 4 }
         }
