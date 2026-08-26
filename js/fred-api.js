@@ -1,42 +1,36 @@
 export async function fetchFredSeries(seriesId, apiKey) {
-  // Calculate date exactly 24 months ago (YYYY-MM-DD)
+  // Calculate date 24 months ago (YYYY-MM-DD)
   const d = new Date();
   d.setMonth(d.getMonth() - 24);
   const startDate = d.toISOString().split('T')[0];
 
   const primaryUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
+  
+  // Fixed proxy URL formats
   const proxyUrls = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(primaryUrl)}`
+    `https://corsproxy.io/?url=${encodeURIComponent(primaryUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}`
   ];
 
   for (const url of proxyUrls) {
     try {
       const response = await fetch(url);
       if (!response.ok) continue;
-      const data = await response.json();
-      if (data && Array.isArray(data.observations) && data.observations.length > 0) {
-        return data.observations;
-      }
-    } catch (err) {
-      console.warn(`Proxy attempt failed for ${seriesId}:`, err);
-    }
-  }
 
-  try {
-    const response = await fetch(primaryUrl);
-    if (response.ok) {
       const data = await response.json();
+      
       if (data && Array.isArray(data.observations)) {
         return data.observations;
       }
+    } catch (err) {
+      console.warn(`Proxy failed for ${seriesId} using ${url}:`, err);
     }
-  } catch (err) {
-    console.error(`Direct fetch failed for series ${seriesId}:`, err);
   }
 
+  console.error(`All CORS proxies failed to fetch series: ${seriesId}`);
   return [];
 }
+
 
 export function getLatestValidPoint(observations) {
   if (!observations || !Array.isArray(observations) || observations.length === 0) {
