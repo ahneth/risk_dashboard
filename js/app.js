@@ -7,91 +7,42 @@ let apiKey = localStorage.getItem('fred_api_key') || '';
 
 document.addEventListener('DOMContentLoaded', () => {
   initChartDefaults();
-  initApp();
-});
-
-async function initApp() {
-  const banner = document.getElementById('risk-banner');
-  const apiKey = getApiKey(); // Or however you retrieve stored API key
+  setupModalEvents();
 
   if (!apiKey) {
-    banner.textContent = "API key missing. Click API Key Settings to configure.";
-    return;
-  }
-
-  banner.textContent = "Syncing live FRED data feeds...";
-  
-  let successCount = 0;
-  let failCount = 0;
-
-  for (const [cardId, seriesId] of Object.entries(SERIES_MAP)) {
-    const observations = await fetchFredSeries(seriesId, apiKey);
-
-    if (observations && observations.length > 0) {
-      successCount++;
-      renderCardData(cardId, observations); // Updates UI value & Chart.js
-    } else {
-      failCount++;
-      markCardFailed(cardId); // Sets UI card to N/A
-    }
-
-    // Small delay between requests to avoid proxy rate limits
-    await new Promise(res => setTimeout(res, 150));
-  }
-
-  // Only show success if at least one series loaded data
-  if (successCount > 0 && failCount === 0) {
-    banner.className = "border p-3 rounded-lg text-sm font-medium transition-all bg-emerald-950/80 text-emerald-300 border-emerald-800";
-    banner.textContent = `Dashboard successfully synchronized (${successCount}/${successCount + failCount} series live).`;
-  } else if (successCount > 0 && failCount > 0) {
-    banner.className = "border p-3 rounded-lg text-sm font-medium transition-all bg-amber-950/80 text-amber-300 border-amber-800";
-    banner.innerHTML += `<div>Partial sync: ${successCount} loaded, ${failCount} failed.</div>`;
+    updateBanner('FRED API key missing. Click API Key Settings to configure.', 'danger');
+    showKeyModal(true);
   } else {
-    banner.className = "border p-3 rounded-lg text-sm font-medium transition-all bg-rose-950/80 text-rose-300 border-rose-800";
-    banner.innerHTML += `<div>Sync failed: 0 of ${failCount} indicators fetched. Check API key or proxy status.</div>`;
+    loadDashboardData();
   }
-}
-
-function renderCardData(cardId, observations) {
-  // Filter out missing points (FRED uses "." for unrecorded values)
-  const validData = observations
-    .filter(obs => obs.value !== "." && !isNaN(parseFloat(obs.value)))
-    .map(obs => ({
-      date: obs.date,
-      value: parseFloat(obs.value)
-    }));
-
-  if (validData.length === 0) return;
-
-  // 1. Update latest value readout
-  const latest = validData[validData.length - 1];
-  const valEl = document.getElementById(`${cardId}-val`);
-  if (valEl) valEl.textContent = latest.value.toFixed(2);
-
-  // 2. Update Chart.js instance
-  const chart = chartInstances[cardId];
-  if (chart) {
-    chart.data.labels = validData.map(d => d.date);
-    chart.data.datasets[0].data = validData.map(d => d.value);
-    chart.update(); // Re-render canvas
-  }
-}
+});
 
 async function loadDashboardData() {
   updateBanner('Fetching live macroeconomic data from FRED...', 'info');
 
   const seriesData = {};
-  const fetchPromises = Object.entries(SERIES_IDS).map(async ([key, seriesId]) => {
+  let successCount = 0;
+  let failCount = 0;
+
+  // Process sequentially to prevent proxy rate-limiting (HTTP 429)
+  const entries = Object.entries(SERIES_IDS);
+  for (const [key, seriesId] of entries) {
     try {
       const obs = await fetchFredSeries(seriesId, apiKey);
-      seriesData[key] = obs || [];
+      if (obs && obs.length > 0) {
+        seriesData[key] = obs;
+        successCount++;
+      } else {
+        seriesData[key] = [];
+        failCount++;
+      }
     } catch (err) {
       console.error(`Failed loading ${key}:`, err);
       seriesData[key] = [];
+      failCount++;
     }
-  });
-
-  await Promise.all(fetchPromises);
+    await new Promise(res => setTimeout(res, 120));
+  }
 
   const latestValues = {};
   const indicators = Object.keys(INDICATOR_METRICS);
@@ -117,7 +68,6 @@ async function loadDashboardData() {
 
     const cleanData = cleanSeriesData(obs);
     
-    // Build individual risk score history for this specific indicator
     const indicatorRiskHistory = cleanData.map(pt => ({
       x: pt.x,
       y: evaluatePointRisk(id, pt.y).score0to9
@@ -213,7 +163,14 @@ async function loadDashboardData() {
   }).filter(pt => pt.y !== null);
 
   renderCombinedChart(alignedSp500Data, consolidatedRiskHistory);
-  updateBanner('Dashboard successfully synchronized with live FRED data feeds (Last 24 Months).', 'success');
+
+  if (successCount > 0 && failCount === 0) {
+    updateBanner(`Dashboard successfully synchronized with live FRED data feeds (${successCount}/${successCount + failCount} series live).`, 'success');
+  } else if (successCount > 0 && failCount > 0) {
+    updateBanner(`Partial sync: ${successCount} loaded, ${failCount} failed. Check CORS proxy or API status.`, 'warning');
+  } else {
+    updateBanner(`Sync failed: 0 of ${failCount} indicators fetched. Check your API key or proxy status.`, 'danger');
+  }
 }
 
 function updateCardValue(indicatorId, observations, unit = '') {
