@@ -10,16 +10,71 @@ document.addEventListener('DOMContentLoaded', () => {
   initApp();
 });
 
-function initApp() {
-  setupModalEvents();
+async function initApp() {
+  const banner = document.getElementById('risk-banner');
+  const apiKey = getApiKey(); // Or however you retrieve stored API key
 
   if (!apiKey) {
-    showKeyModal(true);
-    updateBanner('FRED API key missing. Please enter your key to load data.', 'warning');
+    banner.textContent = "API key missing. Click API Key Settings to configure.";
     return;
   }
 
-  loadDashboardData();
+  banner.textContent = "Syncing live FRED data feeds...";
+  
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const [cardId, seriesId] of Object.entries(SERIES_MAP)) {
+    const observations = await fetchFredSeries(seriesId, apiKey);
+
+    if (observations && observations.length > 0) {
+      successCount++;
+      renderCardData(cardId, observations); // Updates UI value & Chart.js
+    } else {
+      failCount++;
+      markCardFailed(cardId); // Sets UI card to N/A
+    }
+
+    // Small delay between requests to avoid proxy rate limits
+    await new Promise(res => setTimeout(res, 150));
+  }
+
+  // Only show success if at least one series loaded data
+  if (successCount > 0 && failCount === 0) {
+    banner.className = "border p-3 rounded-lg text-sm font-medium transition-all bg-emerald-950/80 text-emerald-300 border-emerald-800";
+    banner.textContent = `Dashboard successfully synchronized (${successCount}/${successCount + failCount} series live).`;
+  } else if (successCount > 0 && failCount > 0) {
+    banner.className = "border p-3 rounded-lg text-sm font-medium transition-all bg-amber-950/80 text-amber-300 border-amber-800";
+    banner.innerHTML += `<div>Partial sync: ${successCount} loaded, ${failCount} failed.</div>`;
+  } else {
+    banner.className = "border p-3 rounded-lg text-sm font-medium transition-all bg-rose-950/80 text-rose-300 border-rose-800";
+    banner.innerHTML += `<div>Sync failed: 0 of ${failCount} indicators fetched. Check API key or proxy status.</div>`;
+  }
+}
+
+function renderCardData(cardId, observations) {
+  // Filter out missing points (FRED uses "." for unrecorded values)
+  const validData = observations
+    .filter(obs => obs.value !== "." && !isNaN(parseFloat(obs.value)))
+    .map(obs => ({
+      date: obs.date,
+      value: parseFloat(obs.value)
+    }));
+
+  if (validData.length === 0) return;
+
+  // 1. Update latest value readout
+  const latest = validData[validData.length - 1];
+  const valEl = document.getElementById(`${cardId}-val`);
+  if (valEl) valEl.textContent = latest.value.toFixed(2);
+
+  // 2. Update Chart.js instance
+  const chart = chartInstances[cardId];
+  if (chart) {
+    chart.data.labels = validData.map(d => d.date);
+    chart.data.datasets[0].data = validData.map(d => d.value);
+    chart.update(); // Re-render canvas
+  }
 }
 
 async function loadDashboardData() {
