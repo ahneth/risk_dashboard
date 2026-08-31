@@ -26,7 +26,9 @@ export async function fetchFredSeries(seriesId, apiKey) {
   
   const proxies = [
     { name: 'CorsProxy', url: `https://corsproxy.io/?url=${encodeURIComponent(primaryUrl)}` },
-    { name: 'AllOrigins', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}` }
+    { name: 'AllOrigins', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}` },
+    { name: 'CodeTabs', url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(primaryUrl)}` },
+    { name: 'ThingProxy', url: `https://thingproxy.freeboard.io/fetch/${primaryUrl}` }
   ];
 
   let lastError = '';
