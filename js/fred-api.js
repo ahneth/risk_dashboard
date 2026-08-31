@@ -1,72 +1,42 @@
-// Master proxy definitions
-const INITIAL_PROXIES = [
-  { name: 'CorsProxy.io', build: (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}` },
-  { name: 'AllOrigins', build: (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` },
-  { name: 'CodeTabs', build: (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
-  { name: 'ThingProxy', build: (url) => `https://thingproxy.freeboard.io/fetch/${url}` }
-];
-
-// Active proxy pool (persists across fetches during the page session)
-let activeProxies = [...INITIAL_PROXIES];
+let cacheData = null;
 
 export async function fetchFredSeries(seriesId, apiKey) {
-  const d = new Date();
-  d.setMonth(d.getMonth() - 24);
-  const startDate = d.toISOString().split('T')[0];
-
-  const primaryUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
-
-  // Reset proxy pool if all proxies previously failed
-  if (activeProxies.length === 0) {
-    activeProxies = [...INITIAL_PROXIES];
-  }
-
-  for (let i = 0; i < activeProxies.length; i++) {
-    const proxy = activeProxies[i];
-    const proxyUrl = proxy.build(primaryUrl);
-
+  // Load cached JSON bundle once per page load
+  if (!cacheData) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second hard cutoff
-
-      const response = await fetch(proxyUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
-      if (data && Array.isArray(data.observations) && data.observations.length > 0) {
-        
-        // SUCCESS: Move this working proxy to position 0 so all remaining indicators use it first
-        if (i > 0) {
-          activeProxies.splice(i, 1);
-          activeProxies.unshift(proxy);
-        }
-        
-        return data.observations;
+      const res = await fetch('./data/fred_cache.json?v=' + Date.now());
+      if (res.ok) {
+        cacheData = await res.json();
       }
-      throw new Error('Invalid payload');
     } catch (err) {
-      console.warn(`[${proxy.name}] failed for ${seriesId}. Dropping proxy from active list.`);
-      
-      // FAILURE: Instantly remove this proxy so subsequent series skip it
-      activeProxies.splice(i, 1);
-      i--; // Adjust index after array shift
+      console.warn('Local cache not available, falling back to direct API call.');
     }
   }
 
-  logUiError(`Failed to load [${seriesId}]: All active proxies failed.`);
-  return [];
-}
+  // Return data from GitHub static cache if present
+  if (cacheData) {
+    const key = Object.keys(cacheData).find(
+      k => k === seriesId || cacheData[k]?.seriesId === seriesId
+    );
+    if (key && cacheData[key]) {
+      return cacheData[key];
+    }
+  }
 
-function logUiError(msg) {
-  const banner = document.getElementById('risk-banner');
-  if (!banner) return;
-  const time = new Date().toLocaleTimeString();
-  const entry = document.createElement('div');
-  entry.className = 'text-xs font-mono mt-1 text-rose-300';
-  entry.innerHTML = `<strong>[${time}]</strong> ${msg}`;
-  banner.appendChild(entry);
+  // Fallback direct request for local development
+  const d = new Date();
+  d.setMonth(d.getMonth() - 24);
+  const startDate = d.toISOString().split('T')[0];
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.observations || [];
+  } catch (err) {
+    console.error(`Fetch failed for ${seriesId}:`, err);
+    return [];
+  }
 }
 
 export function getLatestValidPoint(observations) {
