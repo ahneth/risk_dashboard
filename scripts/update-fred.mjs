@@ -1,17 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+// Import the single source of truth from your frontend config
+import { SERIES_IDS } from '../js/config.js'; 
 
 const FRED_API_KEY = process.env.FRED_API_KEY;
-const SERIES_IDS = {
-  sp500: 'SP500',
-  yield_curve: 'T10Y2Y',
-  credit_spread: 'BAMLC0A0CM',
-  bbb_spread: 'BAMLC0A4CBBB',
-  sahm_rule: 'SAHMREALTIME',
-  ted_spread: 'STLFSI4',
-  fed_liquidity: 'WALCL',
-  fed_funds: 'DFF'
-};
 
 async function fetchSeries(seriesId) {
   const d = new Date();
@@ -45,6 +37,8 @@ async function main() {
     await new Promise(r => setTimeout(r, 100));
   }
 
+  // process.cwd() resolves to the root directory because your 
+  // GitHub Actions workflow runs: `node scripts/update-fred.mjs`
   const outputDir = path.join(process.cwd(), 'data');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
