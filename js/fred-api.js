@@ -1,42 +1,22 @@
 let cacheData = null;
 
-export async function fetchFredSeries(seriesId, apiKey) {
-  // Load cached JSON bundle once per page load
+// We now pass the internal dictionary key (e.g., 'yield_curve'), not the FRED ID
+export async function fetchFredSeries(indicatorKey) {
   if (!cacheData) {
     try {
       const res = await fetch('./data/fred_cache.json?v=' + Date.now());
       if (res.ok) {
         cacheData = await res.json();
+      } else {
+        throw new Error('Cache file not found');
       }
     } catch (err) {
-      console.warn('Local cache not available, falling back to direct API call.');
+      console.error('Failed to load local cache. Ensure GitHub Actions has run:', err);
+      return [];
     }
   }
-
-  // Return data from GitHub static cache if present
-  if (cacheData) {
-    const key = Object.keys(cacheData).find(
-      k => k === seriesId || cacheData[k]?.seriesId === seriesId
-    );
-    if (key && cacheData[key]) {
-      return cacheData[key];
-    }
-  }
-
-  // Fallback direct request for local development
-  const d = new Date();
-  d.setMonth(d.getMonth() - 24);
-  const startDate = d.toISOString().split('T')[0];
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&observation_start=${startDate}`;
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    return data.observations || [];
-  } catch (err) {
-    console.error(`Fetch failed for ${seriesId}:`, err);
-    return [];
-  }
+  
+  return cacheData[indicatorKey] || [];
 }
 
 export function getLatestValidPoint(observations) {
