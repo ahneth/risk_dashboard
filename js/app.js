@@ -7,14 +7,8 @@ let apiKey = localStorage.getItem('fred_api_key') || '';
 
 document.addEventListener('DOMContentLoaded', () => {
   initChartDefaults();
-  setupModalEvents();
-
-  if (!apiKey) {
-    updateBanner('FRED API key missing. Click API Key Settings to configure.', 'danger');
-    showKeyModal(true);
-  } else {
-    loadDashboardData();
-  }
+  // Remove the modal and apiKey check entirely. Boot straight into the data.
+  loadDashboardData(); 
 });
 
 async function loadDashboardData() {
@@ -28,7 +22,8 @@ async function loadDashboardData() {
   const entries = Object.entries(SERIES_IDS);
   for (const [key, seriesId] of entries) {
     try {
-      const obs = await fetchFredSeries(seriesId, apiKey);
+      // Pass 'key' instead of 'seriesId' and drop 'apiKey'
+      const obs = await fetchFredSeries(key); 
       if (obs && obs.length > 0) {
         seriesData[key] = obs;
         successCount++;
@@ -41,7 +36,6 @@ async function loadDashboardData() {
       seriesData[key] = [];
       failCount++;
     }
-    await new Promise(res => setTimeout(res, 120));
   }
 
   const latestValues = {};
