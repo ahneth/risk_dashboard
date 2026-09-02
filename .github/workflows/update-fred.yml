@@ -2,8 +2,8 @@ name: Update FRED Data Cache
 
 on:
   schedule:
-    # Runs at 00:00 UTC every day
-    - cron: '0 0 * * *'
+    # Runs at 14 minutes past the hour, every 4 hours
+    - cron: '14 */4 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 jobs:
