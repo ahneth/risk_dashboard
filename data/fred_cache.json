@@ -3,12 +3,6 @@
     {
       "realtime_start": "2026-09-11",
       "realtime_end": "2026-09-11",
-      "date": "2024-09-11",
-      "value": "0.03"
-    },
-    {
-      "realtime_start": "2026-09-11",
-      "realtime_end": "2026-09-11",
       "date": "2024-09-12",
       "value": "0.04"
     },
@@ -3140,12 +3134,6 @@
     }
   ],
   "credit_spread": [
-    {
-      "realtime_start": "2026-09-11",
-      "realtime_end": "2026-09-11",
-      "date": "2024-09-11",
-      "value": "1.01"
-    },
     {
       "realtime_start": "2026-09-11",
       "realtime_end": "2026-09-11",
@@ -6316,12 +6304,6 @@
     }
   ],
   "bbb_spread": [
-    {
-      "realtime_start": "2026-09-11",
-      "realtime_end": "2026-09-11",
-      "date": "2024-09-11",
-      "value": "1.25"
-    },
     {
       "realtime_start": "2026-09-11",
       "realtime_end": "2026-09-11",
@@ -10893,12 +10875,6 @@
     {
       "realtime_start": "2026-09-11",
       "realtime_end": "2026-09-11",
-      "date": "2024-09-11",
-      "value": "5.33"
-    },
-    {
-      "realtime_start": "2026-09-11",
-      "realtime_end": "2026-09-11",
       "date": "2024-09-12",
       "value": "5.33"
     },
@@ -15275,12 +15251,6 @@
     {
       "realtime_start": "2026-09-11",
       "realtime_end": "2026-09-11",
-      "date": "2024-09-11",
-      "value": "7115001.0"
-    },
-    {
-      "realtime_start": "2026-09-11",
-      "realtime_end": "2026-09-11",
       "date": "2024-09-18",
       "value": "7109137.0"
     },
@@ -16044,12 +16014,6 @@
     }
   ],
   "vix": [
-    {
-      "realtime_start": "2026-09-11",
-      "realtime_end": "2026-09-11",
-      "date": "2024-09-11",
-      "value": "17.69"
-    },
     {
       "realtime_start": "2026-09-11",
       "realtime_end": "2026-09-11",
@@ -19181,12 +19145,6 @@
     {
       "realtime_start": "2026-09-11",
       "realtime_end": "2026-09-11",
-      "date": "2024-09-11",
-      "value": "5554.13"
-    },
-    {
-      "realtime_start": "2026-09-11",
-      "realtime_end": "2026-09-11",
       "date": "2024-09-12",
       "value": "5595.76"
     },
@@ -22309,6 +22267,12 @@
       "realtime_end": "2026-09-11",
       "date": "2026-09-10",
       "value": "7591.7"
+    },
+    {
+      "realtime_start": "2026-09-11",
+      "realtime_end": "2026-09-11",
+      "date": "2026-09-11",
+      "value": "7656.98"
     }
   ]
 }
