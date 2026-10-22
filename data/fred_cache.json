@@ -3131,6 +3131,12 @@
       "realtime_end": "2026-10-22",
       "date": "2026-10-21",
       "value": "0.32"
+    },
+    {
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
+      "date": "2026-10-22",
+      "value": "0.31"
     }
   ],
   "credit_spread": [
@@ -15257,6 +15263,12 @@
       "realtime_end": "2026-10-22",
       "date": "2026-10-20",
       "value": "3.88"
+    },
+    {
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
+      "date": "2026-10-21",
+      "value": "3.88"
     }
   ],
   "fed_liquidity": [
@@ -15883,6 +15895,12 @@
       "realtime_end": "2026-10-22",
       "date": "2026-10-14",
       "value": "6755639"
+    },
+    {
+      "realtime_start": "2026-10-22",
+      "realtime_end": "2026-10-22",
+      "date": "2026-10-21",
+      "value": "6753604"
     }
   ],
   "consumer_sentiment": [
