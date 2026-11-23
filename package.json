@@ -1,0 +1,7 @@
+{
+  "name": "macro-risk-dashboard",
+  "version": "2.0.1",
+  "description": "Dual-speed Macro & Market Shock Risk Monitor powered by FRED and GitHub Actions",
+  "private": true,
+  "type": "module"
+}

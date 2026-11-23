@@ -1,19 +1,30 @@
+<!-- Version: 2.0.1 | Last Modified: 2026-11-23 09:38 HKT -->
+<!--
+  File: index.html
+  Description: Main entry point for the Macro & Market Shock Risk Dashboard (FRED).
+               Displays a dual-speed risk monitoring UI separating Near-Term Market Shock
+               Sensors (daily velocity/drawdown) from Structural Macro Regime Indicators.
+  Change Log:
+    - 2.0.1 (2026-11-23 09:38 HKT): Standalone repo package update (added package.json for ESM
+      Node imports, starter data/fred_cache.json, visible workflow copy, and README.md).
+    - 2.0.0 (2026-11-23 08:41 HKT): Thorough revamp to detect near-term market/system shocks.
+    - 1.0.0 (2026-08-01 00:00 HKT): Initial FRED Macro Risk Dashboard release.
+-->
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Macroeconomic Risk Dashboard (FRED)</title>
+  <title>Macro & Market Shock Risk Dashboard (FRED)</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            darkbg: '#0f172a',
-            cardbg: '#1e293b'
+            darkbg: '#0b1120',
+            cardbg: '#151f32'
           }
         }
       }
@@ -22,44 +33,63 @@
 </head>
 <body class="bg-darkbg text-slate-100 min-h-screen font-sans antialiased">
 
-  <header class="border-b border-slate-800 bg-slate-900/60 sticky top-0 z-30 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <!-- Sticky Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="flex items-center space-x-3">
-        <div class="bg-indigo-600/20 border border-indigo-500/30 p-2 rounded-lg text-indigo-400">
+        <div class="bg-rose-600/20 border border-rose-500/30 p-2 rounded-lg text-rose-400">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
         <div>
-          <h1 class="text-lg font-bold tracking-tight text-white">Macro Risk Dashboard</h1>
-          <p class="text-xs text-slate-400">FRED Real-Time Economic Monitor</p>
+          <h1 class="text-lg font-bold tracking-tight text-white">Macro & Shock Risk Monitor <span class="text-xs font-mono font-normal text-slate-400 ml-1">v2.0.1</span></h1>
+          <p id="last-updated-text" class="text-xs text-slate-400">Syncing FRED cache...</p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-4">
-        <div id="overall-score-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+      <!-- Top-level Risk Badges -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div id="shock-score-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+          Shock: -- / 9.0
+        </div>
+        <div id="macro-score-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+          Macro: -- / 9.0
+        </div>
+        <div id="overall-score-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-600">
           Total Risk: -- / 9.0
         </div>
-        <button id="btn-change-key" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">
-          API Key Settings
-        </button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-    <div id="risk-banner" class="border p-3 rounded-lg text-sm font-medium transition-all bg-slate-900 text-slate-400 border-slate-800">
-      Initializing system...
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+    <!-- Dynamic Alert / Status Banner -->
+    <div id="risk-banner" class="border p-4 rounded-xl text-sm font-medium transition-all bg-slate-900 text-slate-400 border-slate-800">
+      Initializing dual-speed risk engine...
     </div>
 
-    <section class="bg-cardbg border border-slate-800 rounded-xl p-6 shadow-xl">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 pb-4 border-b border-slate-800">
+    <!-- Consolidated Chart Section -->
+    <section class="bg-cardbg border border-slate-800 rounded-xl p-5 sm:p-6 shadow-xl">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5 pb-4 border-b border-slate-800">
         <div>
-          <h2 class="text-base font-bold text-white">Macroeconomic Risk Index vs S&P 500</h2>
-          <p class="text-xs text-slate-400">Consolidated cross-asset systemic financial stress history</p>
+          <h2 class="text-base font-bold text-white">Composite Risk & Shock Index vs S&P 500</h2>
+          <p class="text-xs text-slate-400">65% Fast Market Shock Sensors (with Override) + 35% Structural Macro Regime</p>
         </div>
-        <div id="sp500-badge" class="mt-2 sm:mt-0 text-xs font-semibold px-3 py-1 rounded bg-slate-800/80 text-slate-300 border border-slate-700">
-          S&P: Loading...
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Timeframe Toggles -->
+          <div id="timeframe-controls" class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800 text-xs font-semibold">
+            <button data-months="3" class="tf-btn px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">3M</button>
+            <button data-months="6" class="tf-btn px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">6M</button>
+            <button data-months="12" class="tf-btn px-2.5 py-1 rounded-md bg-indigo-600 text-white transition">1Y</button>
+            <button data-months="24" class="tf-btn px-2.5 py-1 rounded-md text-slate-400 hover:text-white transition">2Y</button>
+          </div>
+          <div id="sp500-badge" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-sky-300 border border-slate-700">
+            S&P: --
+          </div>
+          <div id="nasdaq-badge" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 text-purple-300 border border-slate-700">
+            NDX/IXIC: --
+          </div>
         </div>
       </div>
       <div class="relative h-80 w-full">
@@ -67,220 +97,38 @@
       </div>
     </section>
 
+    <!-- Tier 1: Near-Term Market Shock Sensors (Fast / Daily) -->
     <section>
-      <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Core Indicator Breakdown</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Yield Curve (10Y - 2Y)</span>
-              <span id="yield_curve-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="yield_curve-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Measures the spread between 10-year and 2-year US Treasuries. Inversions signal potential economic recession.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&gt; 0.5%: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">0 to 0.5%: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&lt; 0%: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="yield_curveChart"></canvas>
-          </div>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            Tier 1: Near-Term Market Shock Sensors (Daily)
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">65% weight + Shock Override. Evaluates both absolute levels and 5D–20D velocity / drawdowns.</p>
         </div>
+      </div>
+      <div id="fast-indicators-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Dynamically populated by js/app.js -->
+      </div>
+    </section>
 
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">High Yield Spread</span>
-              <span id="credit_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="credit_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Option-adjusted spread on high-yield corporate bonds over risk-free rates, indicating corporate credit stress.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 3.5%: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">3.5% - 4.5%: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 4.5%: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="credit_spreadChart"></canvas>
-          </div>
+    <!-- Tier 2: Structural Macro Regime Indicators (Slow / Weekly & Monthly) -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-sky-400 uppercase tracking-wider flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+            Tier 2: Structural Macro Regime (Weekly / Monthly)
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">35% weight. Tracks underlying recession, credit, and central bank liquidity regimes.</p>
         </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">BBB Corp Spread</span>
-              <span id="bbb_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="bbb_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Measures investment-grade BBB corporate bond yields over Treasuries, monitoring risk at the edge of high-yield.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 1.7%: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">1.7% - 2.2%: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 2.2%: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="bbb_spreadChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Sahm Rule Recession</span>
-              <span id="sahm_rule-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="sahm_rule-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Signals the start of a recession when the 3-month moving average of national unemployment rises by 0.50%+</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 0.35%: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">0.35% - 0.50%: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt;= 0.50%: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="sahm_ruleChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Financial Conditions (NFCI)</span>
-              <span id="nfci-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="nfci-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Chicago Fed National Financial Conditions Index tracking money markets, debt, equity, and shadow banking.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; -0.5: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">-0.5 to 0.0: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 0.0: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="nfciChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">St. Louis Financial Stress</span>
-              <span id="stlfsi-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="stlfsi-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">STLFSI measures financial stress in the US financial market based on 18 weekly economic indicators.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; -0.5: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">-0.5 to 0.5: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 0.5: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="stlfsiChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Effective Federal Funds Rate</span>
-              <span id="ted_spread-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="ted_spread-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Tracks the central benchmark interest rate for overnight federal funds transactions.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 3.0%: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">3.0% - 5.5%: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 5.5%: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="ted_spreadChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Fed Total Assets</span>
-              <span id="fed_liquidity-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="fed_liquidity-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Tracks the expansion or contraction of the Federal Reserve's balance sheet and systemic liquidity.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">Expanding: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">Stable: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">Contracting: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="fed_liquidityChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Consumer Sentiment</span>
-              <span id="consumer_sentiment-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="consumer_sentiment-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">University of Michigan consumer sentiment index measuring household confidence in economic outlook.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&gt; 75: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">60 - 75: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&lt; 60: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="consumer_sentimentChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-cardbg border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">CBOE Volatility (VIX)</span>
-              <span id="vix-score-badge" class="text-xs font-bold px-2 py-0.5 rounded border bg-slate-800 text-slate-500 border-slate-700">SCORE: N/A</span>
-            </div>
-            <div id="vix-val" class="text-2xl font-black text-white mb-2">Loading...</div>
-            <p class="text-xs text-slate-400 mb-2">Measures expected 30-day volatility of the S&P 500 options market, reflecting investor fear.</p>
-            <div class="flex flex-wrap gap-1.5 text-[10px] font-medium pt-1 border-t border-slate-800/80 mb-3">
-              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-900">&lt; 15: Green</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-900">15 - 20: Amber</span>
-              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900">&gt; 20: Red</span>
-            </div>
-          </div>
-          <div class="relative h-36 w-full mt-2">
-            <canvas id="vixChart"></canvas>
-          </div>
-        </div>
-
+      </div>
+      <div id="slow-indicators-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Dynamically populated by js/app.js -->
       </div>
     </section>
   </main>
-
-  <div id="key-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden">
-    <div class="bg-cardbg border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-      <div>
-        <h3 class="text-lg font-bold text-white mb-1">Enter FRED API Key</h3>
-        <p class="text-xs text-slate-400">A free API key from the Federal Reserve Bank of St. Louis is required.</p>
-      </div>
-      <div>
-        <input type="text" id="modal-key-input" placeholder="Paste your 32-character API key here..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-      </div>
-      <div class="flex justify-end space-x-3 pt-2">
-        <button id="btn-save-key" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-5 py-2 rounded-lg transition shadow-lg shadow-indigo-600/30">
-          Save & Load Data
-        </button>
-      </div>
-    </div>
-  </div>
 
   <script type="module" src="./js/app.js"></script>
 </body>
