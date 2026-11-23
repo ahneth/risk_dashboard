@@ -1,13 +1,27 @@
+// Version: 2.0.1 | Last Modified: 2026-11-23 09:38 HKT
+/*
+  File: scripts/update-fred.mjs
+  Description: Node.js backend fetcher run by GitHub Actions. Imports SERIES_IDS
+               directly from js/config.js, pulls 28 months of FRED observations
+               (ensuring full 1Y YoY lookbacks on a 2Y chart), and writes data/fred_cache.json.
+  Change Log:
+    - 2.0.1 (2026-11-23 09:38 HKT): Version sync; pairs with package.json ("type": "module")
+      so Node 20 cleanly imports ../js/config.js in a fresh repo.
+    - 2.0.0 (2026-11-23 08:41 HKT): Expanded lookback to 28 months and added _meta.updatedAt.
+    - 1.0.0 (2026-08-01 00:00 HKT): Initial FRED cache updater.
+*/
+
 import fs from 'fs';
 import path from 'path';
-// Import the single source of truth from your frontend config
-import { SERIES_IDS } from '../js/config.js'; 
+import { SERIES_IDS } from '../js/config.js';
 
 const FRED_API_KEY = process.env.FRED_API_KEY;
+const LOOKBACK_MONTHS = 28;
+const REQUEST_DELAY_MS = 120;
 
 async function fetchSeries(seriesId) {
   const d = new Date();
-  d.setMonth(d.getMonth() - 24);
+  d.setMonth(d.getMonth() - LOOKBACK_MONTHS);
   const startDate = d.toISOString().split('T')[0];
 
   const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&observation_start=${startDate}`;
@@ -29,16 +43,19 @@ async function main() {
     process.exit(1);
   }
 
-  const cache = {};
+  const cache = {
+    _meta: {
+      version: '2.0.1',
+      updatedAt: new Date().toISOString()
+    }
+  };
+
   for (const [key, seriesId] of Object.entries(SERIES_IDS)) {
     console.log(`Fetching ${key} (${seriesId})...`);
     cache[key] = await fetchSeries(seriesId);
-    // 100ms delay to respect FRED API guidelines
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, REQUEST_DELAY_MS));
   }
 
-  // process.cwd() resolves to the root directory because your 
-  // GitHub Actions workflow runs: `node scripts/update-fred.mjs`
   const outputDir = path.join(process.cwd(), 'data');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
