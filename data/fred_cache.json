@@ -1,15 +1,9 @@
 {
   "_meta": {
     "version": "2.0.1",
-    "updatedAt": "2026-11-24T19:28:22.968Z"
+    "updatedAt": "2026-11-25T03:30:54.218Z"
   },
   "vix": [
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "18.04"
-    },
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
@@ -3663,12 +3657,6 @@
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "23.06"
-    },
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
       "date": "2024-07-25",
       "value": "24.11"
     },
@@ -7319,12 +7307,6 @@
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "17342.41"
-    },
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
       "date": "2024-07-25",
       "value": "17181.72"
     },
@@ -10954,12 +10936,6 @@
     }
   ],
   "sp500_dd": [
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "5427.13"
-    },
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
@@ -14610,12 +14586,6 @@
     }
   ],
   "hy_spread": [
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "3.10"
-    },
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
@@ -18317,12 +18287,6 @@
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "2.0"
-    },
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
       "date": "2024-07-25",
       "value": "1.99"
     },
@@ -21961,15 +21925,15 @@
       "realtime_end": "2026-11-24",
       "date": "2026-11-20",
       "value": "2.77"
-    }
-  ],
-  "usd_index": [
+    },
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "123.5575"
-    },
+      "date": "2026-11-23",
+      "value": "2.79"
+    }
+  ],
+  "usd_index": [
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
@@ -25617,12 +25581,6 @@
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "-0.09"
-    },
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
       "date": "2024-07-25",
       "value": "-0.14"
     },
@@ -29267,6 +29225,12 @@
       "realtime_end": "2026-11-24",
       "date": "2026-11-23",
       "value": "0.29"
+    },
+    {
+      "realtime_start": "2026-11-24",
+      "realtime_end": "2026-11-24",
+      "date": "2026-11-24",
+      "value": "0.28"
     }
   ],
   "sahm_rule": [
@@ -30168,12 +30132,6 @@
     }
   ],
   "fed_liquidity": [
-    {
-      "realtime_start": "2026-11-24",
-      "realtime_end": "2026-11-24",
-      "date": "2024-07-24",
-      "value": "7205455.0"
-    },
     {
       "realtime_start": "2026-11-24",
       "realtime_end": "2026-11-24",
