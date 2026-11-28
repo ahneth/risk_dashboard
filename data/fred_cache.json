@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": "2.0.1",
-    "updatedAt": "2026-11-27T13:46:21.923Z"
+    "updatedAt": "2026-11-28T00:00:12.184Z"
   },
   "vix": [
     {
@@ -3645,6 +3645,18 @@
       "realtime_end": "2026-11-27",
       "date": "2026-11-24",
       "value": "26.36"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-25",
+      "value": "28.29"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-26",
+      "value": "26.8"
     }
   ],
   "vxn": [
@@ -7289,6 +7301,12 @@
       "realtime_end": "2026-11-27",
       "date": "2026-11-24",
       "value": "36.42"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-25",
+      "value": "38.53"
     }
   ],
   "nasdaq_dd": [
@@ -14577,6 +14595,12 @@
       "realtime_end": "2026-11-27",
       "date": "2026-11-24",
       "value": "7201.09"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-25",
+      "value": "7182.78"
     }
   ],
   "hy_spread": [
@@ -18269,6 +18293,18 @@
       "realtime_end": "2026-11-27",
       "date": "2026-11-24",
       "value": "3.72"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-25",
+      "value": "3.77"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-26",
+      "value": "3.77"
     }
   ],
   "real_yield": [
@@ -21913,6 +21949,12 @@
       "realtime_end": "2026-11-27",
       "date": "2026-11-24",
       "value": "2.79"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-25",
+      "value": "2.73"
     }
   ],
   "usd_index": [
@@ -29195,6 +29237,18 @@
       "realtime_end": "2026-11-27",
       "date": "2026-11-25",
       "value": "0.24"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-26",
+      "value": "."
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-27",
+      "value": "0.25"
     }
   ],
   "sahm_rule": [
@@ -30821,6 +30875,12 @@
       "realtime_end": "2026-11-27",
       "date": "2026-11-18",
       "value": "6741452"
+    },
+    {
+      "realtime_start": "2026-11-27",
+      "realtime_end": "2026-11-27",
+      "date": "2026-11-25",
+      "value": "6732044"
     }
   ]
 }
